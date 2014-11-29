@@ -15,8 +15,9 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  -- exposed-modules:     
+  exposed-modules:     Data.FAlgebra
   -- other-modules:       
-  build-depends:       base ==4.7.*
+  build-depends:       base >=4.7 && <5.0
                      , bifunctors >= 4.0
                      , comonad >=4.2
+                     , mtl >=2.2
