@@ -40,6 +40,13 @@ instance (Functor f, FAlgebra f a) => FAlgebra f (Identity a) where
 instance (Functor f, FCoalgebra f a) => FCoalgebra f (Identity a) where
     coalg = fmap Identity . coalg . runIdentity
 
+instance (Functor f, FAlgebra f a1, FAlgebra f a2) => FAlgebra f (a1, a2) where
+    alg as = (alg $ fmap fst as, alg $ fmap snd as)
+
+instance (Functor f, FCoalgebra f a1, FCoalgebra f a2) => FCoalgebra f (Either a1 a2) where
+    coalg (Left a1) = fmap Left (coalg a1)
+    coalg (Right a2) = fmap Right (coalg a2)
+
 newtype BFix f a = WrapBFix { unwrapBFix :: Fix (f a) }
 deriving instance Eq (Fix (f a)) => Eq (BFix f a)
 deriving instance Show (Fix (f a)) => Show (BFix f a)
@@ -107,8 +114,6 @@ instance Functor f => Comonad (Cofree f) where
     extract (WrapCofree (Fix (a :< _))) = a
     extend f c@(WrapCofree (Fix (a :< as))) = WrapCofree . Fix $ f c :< fmap (unwrapCofree . extend f . WrapCofree) as
 
--- TODO: Unfixed version of Ann
--- TODO: Chain 'Ann's
 -- Goal: Have Ann f a be like Cofree f a but as an f-algebra
 -- instead of a (CofreeF f a)-algebra.
 
@@ -136,6 +141,9 @@ instance (Functor f, FCoalgebra f a) => FCoalgebra f (FIdentity f a) where
 
 type AnnF f a = AnnT f a (FIdentity f)
 
+class FAlgebraFunctor f g | g -> f where
+    algf :: forall r. FAlgebra f r => f (g r) -> g r
+
 -- This is the key!
 -- We want
 -- AnnF f a (AnnF f b r)
@@ -143,17 +151,15 @@ type AnnF f a = AnnT f a (FIdentity f)
 instance (Functor f, FAlgebra f a, FAlgebra f (f' r)) => FAlgebra f (AnnT f a f' r) where
     alg anns = AnnT (alg $ fmap annFst anns) (fmap alg $ fmap annSnd anns)
 
-class FAlgebraFunctor f g | g -> f where
-    algf :: forall r. FAlgebra f r => f (g r) -> g r
+instance (Functor f, FAlgebra f a, FAlgebraFunctor f f') => FAlgebraFunctor f (AnnT f a f') where
+    algf anns = AnnT (alg $ fmap annFst anns) (fmap algf $ fmap annSnd anns)
 
 instance (Functor f) => FAlgebraFunctor f (FIdentity f) where
     algf = alg
 
-instance (Functor f, FAlgebra f a) => FAlgebraFunctor f (AnnF f a) where
-    algf = alg
-
 -- TODO: Maybe better name?
 data AnnFix f = AnnFix { unAnnFix :: f (AnnFix f) }
+deriving instance Show (f (AnnFix f)) => Show (AnnFix f)
 
 instance (Functor f, FAlgebraFunctor f g) => FAlgebra f (AnnFix g) where
     alg anns = AnnFix . algf $ fmap unAnnFix anns
@@ -234,6 +240,12 @@ instance Monoid a => FAlgebra (TreeF a) (Combined a) where
     alg (Branch a (Combined b1) (Combined b2)) = Combined (b1 <> a <> b2)
 
 type CombinedTree a = Ann (TreeF a) (Combined a)
+
+type SizeAndCombinedTree a = Ann (TreeF a) (Size a, Combined a)
+
+type SizeTree2 a = AnnFix (AnnF (TreeF a) (Size a))
+
+type SizeAndCombinedTree2 a = AnnFix (AnnT (TreeF a) (Combined a) (AnnF (TreeF a) (Size a)))
 
 --TODO: Rewrite splay tree using this as 'smart constructors'
 --(F-algebras are 'smart constructors', F-coalgebras are 'smart pattern matchers')
