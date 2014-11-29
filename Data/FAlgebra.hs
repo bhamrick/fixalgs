@@ -18,10 +18,10 @@ import Control.Comonad
 import Data.Bifunctor
 import Data.Monoid
 
-class Functor f => FAlgebra f a | a -> f where
+class FAlgebra f a | a -> f where
     alg :: f a -> a
 
-class Functor f => FCoalgebra f a | a -> f where
+class FCoalgebra f a | a -> f where
     coalg :: a -> f a
 
 data Fix f = Fix { unFix :: f (Fix f) }
@@ -34,20 +34,20 @@ instance FAlgebra f (Fix f) where
 instance FCoalgebra f (Fix f) where
     coalg = unFix
 
-instance (FAlgebra f a) => FAlgebra f (Identity a) where
+instance (Functor f, FAlgebra f a) => FAlgebra f (Identity a) where
     alg = Identity . alg . fmap runIdentity
 
-instance (FCoalgebra f a) => FCoalgebra f (Identity a) where
+instance (Functor f, FCoalgebra f a) => FCoalgebra f (Identity a) where
     coalg = fmap Identity . coalg . runIdentity
 
 newtype BFix f a = WrapBFix { unwrapBFix :: Fix (f a) }
 deriving instance Eq (Fix (f a)) => Eq (BFix f a)
 deriving instance Show (Fix (f a)) => Show (BFix f a)
 
-instance FAlgebra (f a) (BFix f a) where
+instance Functor (f a) => FAlgebra (f a) (BFix f a) where
     alg = WrapBFix . Fix . fmap unwrapBFix
 
-instance FCoalgebra (f a) (BFix f a) where
+instance Functor (f a) => FCoalgebra (f a) (BFix f a) where
     coalg = fmap WrapBFix . unFix . unwrapBFix
 
 instance Bifunctor f => Functor (BFix f) where
@@ -77,13 +77,13 @@ deriving instance Show (Fix (FreeF f a)) => Show (Free f a)
 newtype Cofree f a = WrapCofree { unwrapCofree :: Fix (CofreeF f a) }
 deriving instance Show (Fix (CofreeF f a)) => Show (Cofree f a)
 
-instance FAlgebra (FreeF f a) (Free f a) where
+instance Functor f => FAlgebra (FreeF f a) (Free f a) where
     alg = WrapFree . alg . fmap unwrapFree
-instance FAlgebra (CofreeF f a) (Cofree f a) where
+instance Functor f => FAlgebra (CofreeF f a) (Cofree f a) where
     alg = WrapCofree . alg . fmap unwrapCofree
-instance FCoalgebra (FreeF f a) (Free f a) where
+instance Functor f => FCoalgebra (FreeF f a) (Free f a) where
     coalg = fmap WrapFree . coalg . unwrapFree
-instance FCoalgebra (CofreeF f a) (Cofree f a) where
+instance Functor f => FCoalgebra (CofreeF f a) (Cofree f a) where
     coalg = fmap WrapCofree . coalg . unwrapCofree
 
 -- This could be derived from noting that FreeF is a bifunctor
@@ -128,10 +128,10 @@ annSnd (AnnT _ as) = as
 newtype FIdentity (f :: * -> *) a = FIdentity { runFIdentity :: a }
     deriving (Eq, Show, Ord)
 
-instance FAlgebra f a => FAlgebra f (FIdentity f a) where
+instance (Functor f, FAlgebra f a) => FAlgebra f (FIdentity f a) where
     alg = FIdentity . alg . fmap runFIdentity
 
-instance FCoalgebra f a => FCoalgebra f (FIdentity f a) where
+instance (Functor f, FCoalgebra f a) => FCoalgebra f (FIdentity f a) where
     coalg = fmap FIdentity . coalg . runFIdentity
 
 type AnnF f a = AnnT f a (FIdentity f)
@@ -140,22 +140,22 @@ type AnnF f a = AnnT f a (FIdentity f)
 -- We want
 -- AnnF f a (AnnF f b r)
 -- To be an f-algebra (with appropriate conditions)
-instance (FAlgebra f a, FAlgebra f (f' r)) => FAlgebra f (AnnT f a f' r) where
+instance (Functor f, FAlgebra f a, FAlgebra f (f' r)) => FAlgebra f (AnnT f a f' r) where
     alg anns = AnnT (alg $ fmap annFst anns) (fmap alg $ fmap annSnd anns)
 
 class FAlgebraFunctor f g | g -> f where
     algf :: forall r. FAlgebra f r => f (g r) -> g r
 
-instance FAlgebraFunctor f (FIdentity f) where
+instance (Functor f) => FAlgebraFunctor f (FIdentity f) where
     algf = alg
 
-instance FAlgebra f a => FAlgebraFunctor f (AnnF f a) where
+instance (Functor f, FAlgebra f a) => FAlgebraFunctor f (AnnF f a) where
     algf = alg
 
 -- TODO: Maybe better name?
 data AnnFix f = AnnFix { unAnnFix :: f (AnnFix f) }
 
-instance FAlgebraFunctor f g => FAlgebra f (AnnFix g) where
+instance (Functor f, FAlgebraFunctor f g) => FAlgebra f (AnnFix g) where
     alg anns = AnnFix . algf $ fmap unAnnFix anns
 
 newtype Ann f a = Ann { unAnn :: Cofree f a }
@@ -166,7 +166,7 @@ instance Functor f => Comonad (Ann f) where
     extract = extract . unAnn
     extend f = Ann . extend (f . Ann) . unAnn
 
-instance FAlgebra f a => FAlgebra f (Ann f a) where
+instance (Functor f, FAlgebra f a) => FAlgebra f (Ann f a) where
     alg x = Ann . WrapCofree . Fix $ alg (fmap extract x) :< fmap (unwrapCofree . unAnn) x
 
 instance Functor f => FCoalgebra f (Ann f a) where
@@ -174,10 +174,10 @@ instance Functor f => FCoalgebra f (Ann f a) where
 
 -- Need newtype names for this
 {-
-instance FAlgebra f (Free f a) where
+instance Functor f => FAlgebra f (Free f a) where
     alg = WrapFree . Fix . Free . fmap unwrapFree
 
-instance FCoalgebra f a => FCoalgebra f (Free f a) where
+instance (Functor f, FCoalgebra f a) => FCoalgebra f (Free f a) where
     coalg (WrapFree (Fix (Pure x))) = fmap (WrapFree . Fix . Pure) $ coalg x
     coalg (WrapFree (Fix (Free xs))) = fmap WrapFree xs
 -}
