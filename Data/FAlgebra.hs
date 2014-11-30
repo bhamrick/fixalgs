@@ -135,13 +135,13 @@ instance Functor f => Comonad (Cofree f) where
 -- f (AnnF f a r) -> f (f r) -> f r
 
 -- Allows combining annotations without Compose
-data AnnT f a f' r = AnnT a (f' (f r))
+data AnnF a f r = AnnF a (f r)
     deriving (Eq, Show)
-annFst (AnnT a _) = a
-annSnd (AnnT _ as) = as
+annFst (AnnF a _) = a
+annSnd (AnnF _ as) = as
 
-instance (Functor f, Functor f') => Functor (AnnT f a f') where
-    fmap f (AnnT a as) = AnnT a (fmap (fmap f) as)
+instance (Functor f) => Functor (AnnF a f) where
+    fmap f (AnnF a as) = AnnF a (fmap f as)
 
 -- Identity functor with a shadow type for the functor
 -- in order to make fundeps work
@@ -157,23 +157,18 @@ instance (Functor f, FAlgebra f a) => FAlgebra f (FIdentity f a) where
 instance (Functor f, FCoalgebra f a) => FCoalgebra f (FIdentity f a) where
     coalg = fmap FIdentity . coalg . runFIdentity
 
-type AnnF f a = AnnT f a (FIdentity f)
-
 class FAlgebraFunctor f g | g -> f where
     algf :: forall r. FAlgebra f r => f (g r) -> g r
 
+instance Functor f => FAlgebraFunctor f f where
+    algf = fmap alg
+
 -- This is the key!
 -- We want
--- AnnF f a (AnnF f b r)
+-- AnnF a (AnnF f b) r
 -- To be an f-algebra (with appropriate conditions)
-instance (Functor f, FAlgebra f a, FAlgebra f (f' (f r))) => FAlgebra f (AnnT f a f' r) where
-    alg anns = AnnT (alg $ fmap annFst anns) (alg $ fmap annSnd anns)
-
-instance (Functor f, Functor f', FAlgebra f a, FAlgebraFunctor f f') => FAlgebraFunctor f (AnnT f a f') where
-    algf anns = AnnT (alg $ fmap annFst anns) (fmap unwrap . algf . fmap (fmap Wrap) $ fmap annSnd anns)
-
-instance (Functor f) => FAlgebraFunctor f (FIdentity f) where
-    algf = alg
+instance (Functor f, Functor f', FAlgebra f a, FAlgebraFunctor f f') => FAlgebraFunctor f (AnnF a f') where
+    algf anns = AnnF (alg $ fmap annFst anns) (algf $ fmap annSnd anns)
 
 -- TODO: Maybe better name?
 data AnnFix f = AnnFix { unAnnFix :: f (AnnFix f) }
@@ -261,9 +256,9 @@ type CombinedTree a = Ann (TreeF a) (Combined a)
 
 type SizeAndCombinedTree a = Ann (TreeF a) (Size a, Combined a)
 
-type SizeTree2 a = AnnFix (AnnF (TreeF a) (Size a))
+type SizeTree2 a = AnnFix (AnnF (Size a) (TreeF a))
 
-type SizeAndCombinedTree2 a = AnnFix (AnnT (TreeF a) (Combined a) (AnnT (TreeF a) (Size a) (FIdentity (TreeF a))))
+type SizeAndCombinedTree2 a = AnnFix (AnnF (Combined a) (AnnF (Size a) (TreeF a)))
 
 --TODO: Rewrite splay tree using this as 'smart constructors'
 --(F-algebras are 'smart constructors', F-coalgebras are 'smart pattern matchers')
