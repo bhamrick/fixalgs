@@ -14,6 +14,13 @@ class FAlgebra f a | a -> f where
 class FCoalgebra f a | a -> f where
     coalg :: a -> f a
 
+instance (Functor f, FAlgebra f a1, FAlgebra f a2) => FAlgebra f (a1, a2) where
+    alg as = (alg (fmap fst as), alg (fmap snd as))
+
+instance (Functor f, FCoalgebra f a1, FCoalgebra f a2) => FCoalgebra f (Either a1 a2) where
+    coalg (Left a) = fmap Left (coalg a)
+    coalg (Right a) = fmap Right (coalg a)
+
 class FAlgebraFixable f g | g -> f where
     algfix :: forall r. FAlgebra f r => (g r -> r) -> f (g r) -> g r
 

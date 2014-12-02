@@ -71,3 +71,15 @@ instance FAlgebra (TreeF a) (Size a) where
 type SizeTreeF a = AnnF (Size a) (TreeF a)
 
 type SizeTree a = Fix (SizeTreeF a)
+
+newtype Sum a = Sum a deriving (Eq, Show, Ord, Num)
+
+instance Num a => FAlgebra (TreeF a) (Sum a) where
+    alg Empty = 0
+    alg (Branch a b1 b2) = Sum a + b1 + b2
+
+type SumTreeF a = AnnF (Sum a) (TreeF a)
+type SumTree a = Fix (SumTreeF a)
+
+type SumAndSizeTreeF a = AnnF (Size a) (AnnF (Sum a) (TreeF a))
+type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
