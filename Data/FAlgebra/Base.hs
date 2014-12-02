@@ -1,8 +1,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+-- TypeFamilies is currently only used for equality constraints
+-- It's possible it should be used everywhere, though.
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Data.FAlgebra.Base where
 
@@ -33,10 +37,15 @@ class FAlgebraFixable f g => FAlgebraTrans f g | g -> f where
 class FCoalgebraFixable f g => FCoalgebraTrans f g | g -> f where
     coalgf :: forall r. FCoalgebra f r => g r -> f (g r)
 
-instance Functor f => FAlgebraTrans f f where
+-- We use OverlappingInstances and TypeFamilies here so that
+-- these instances are the most general when considering
+-- only the instance head, so they will be considered last,
+-- which allows GHC to figure out which type we want in some
+-- additional circumstances.
+instance (Functor f, f ~ f') => FAlgebraTrans f f' where
     algf = fmap alg
 
-instance Functor f => FCoalgebraTrans f f where
+instance (Functor f, f ~ f') => FCoalgebraTrans f f' where
     coalgf = fmap coalg
 
 class FAlgebraFixable f g => FAlgebraNatural f g | g -> f where
@@ -45,10 +54,10 @@ class FAlgebraFixable f g => FAlgebraNatural f g | g -> f where
 class FCoalgebraFixable f g => FCoalgebraNatural f g | g -> f where
     conat :: forall r. g r -> f r
 
-instance Functor f => FAlgebraNatural f f where
+instance (Functor f, f ~ f') => FAlgebraNatural f f' where
     nat = id
 
-instance Functor f => FCoalgebraNatural f f where
+instance (Functor f, f ~ f') => FCoalgebraNatural f f' where
     conat = id
 
 -- Default implementations of algfix for the two subclasses
@@ -58,9 +67,6 @@ algfixTrans = const algf
 algfixNat :: (Functor f, FAlgebraNatural f g) => (g r -> r) -> f (g r) -> g r
 algfixNat fix = nat . fmap fix
 
-instance Functor f => FAlgebraFixable f f where
-    algfix = algfixNat
-
 -- Default implementations of coalgfix for the two subclasses
 coalgfixTrans :: (FCoalgebraTrans f g, FCoalgebra f r) => (r -> g r) -> g r -> f (g r)
 coalgfixTrans = const coalgf
@@ -68,7 +74,10 @@ coalgfixTrans = const coalgf
 coalgfixNat :: (Functor f, FCoalgebraNatural f g) => (r -> g r) -> g r -> f (g r)
 coalgfixNat unfix = fmap unfix . conat
 
-instance Functor f => FCoalgebraFixable f f where
+instance (Functor f, f ~ f') => FAlgebraFixable f f' where
+    algfix = algfixNat
+
+instance (Functor f, f ~ f') => FCoalgebraFixable f f' where
     coalgfix = coalgfixNat
 
 newtype Fix f = Fix { unFix :: f (Fix f) }

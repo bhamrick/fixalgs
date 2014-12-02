@@ -1,9 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
--- For testing code
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Data.FAlgebra.Annotation where
 
 import Data.FAlgebra.Base
@@ -33,53 +30,3 @@ instance (Functor f, FCoalgebraNatural f f') => FCoalgebraNatural f (AnnF a f') 
 
 instance (Functor f, FCoalgebraNatural f f') => FCoalgebraFixable f (AnnF a f') where
     coalgfix = coalgfixNat
-
--- Testing it out
-data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord)
-
-instance Functor (TreeF a) where
-    fmap f Empty = Empty
-    fmap f (Branch a b1 b2) = Branch a (f b1) (f b2)
-
-type Tree a = Fix (TreeF a)
-
-branch :: FAlgebra (TreeF a) t => a -> t -> t -> t
-branch a b1 b2 = alg $ Branch a b1 b2
-
-leaf :: FAlgebra (TreeF a) t => a -> t
-leaf a = branch a empty empty
-
-empty :: FAlgebra (TreeF a) t => t
-empty = alg Empty
-
-left :: FCoalgebra (TreeF a) t => t -> t
-left t = case coalg t of
-    Empty -> t
-    Branch _ l _ -> l
-
-right :: FCoalgebra (TreeF a) t => t -> t
-right t = case coalg t of
-    Empty -> t
-    Branch _ _ r -> r
-
-newtype Size a = Size Int deriving (Eq, Show, Ord, Num)
-
-instance FAlgebra (TreeF a) (Size a) where
-    alg Empty = 0
-    alg (Branch _ b1 b2) = 1 + b1 + b2
-
-type SizeTreeF a = AnnF (Size a) (TreeF a)
-
-type SizeTree a = Fix (SizeTreeF a)
-
-newtype Sum a = Sum a deriving (Eq, Show, Ord, Num)
-
-instance Num a => FAlgebra (TreeF a) (Sum a) where
-    alg Empty = 0
-    alg (Branch a b1 b2) = Sum a + b1 + b2
-
-type SumTreeF a = AnnF (Sum a) (TreeF a)
-type SumTree a = Fix (SumTreeF a)
-
-type SumAndSizeTreeF a = AnnF (Size a) (AnnF (Sum a) (TreeF a))
-type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
