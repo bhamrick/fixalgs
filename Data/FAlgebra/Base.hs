@@ -6,16 +6,21 @@
 {-# LANGUAGE UndecidableInstances #-}
 module Data.FAlgebra.Base where
 
+-- TODO: Learn about type families and see if they are a better fit
+
 class FAlgebra f a | a -> f where
     alg :: f a -> a
 
 class FCoalgebra f a | a -> f where
     coalg :: a -> f a
 
+class FAlgebraFixable f g | g -> f where
+    algfix :: forall r. FAlgebra f r => (g r -> r) -> f (g r) -> g r
+
 class FCoalgebraFixable f g | g -> f where
     coalgfix :: forall r. FCoalgebra f r => (r -> g r) -> g r -> f (g r)
 
-class FAlgebraTrans f g | g -> f where
+class FAlgebraFixable f g => FAlgebraTrans f g | g -> f where
     algf :: forall r. FAlgebra f r => f (g r) -> g r
 
 class FCoalgebraFixable f g => FCoalgebraTrans f g | g -> f where
@@ -27,18 +32,34 @@ instance Functor f => FAlgebraTrans f f where
 instance Functor f => FCoalgebraTrans f f where
     coalgf = fmap coalg
 
+class FAlgebraFixable f g => FAlgebraNatural f g | g -> f where
+    nat :: forall r. f r -> g r
+
 class FCoalgebraFixable f g => FCoalgebraNatural f g | g -> f where
-    nat :: forall r. g r -> f r
+    conat :: forall r. g r -> f r
+
+instance Functor f => FAlgebraNatural f f where
+    nat = id
 
 instance Functor f => FCoalgebraNatural f f where
-    nat = id
+    conat = id
+
+-- Default implementations of algfix for the two subclasses
+algfixTrans :: (FAlgebraTrans f g, FAlgebra f r) => (g r -> r) -> f (g r) -> g r
+algfixTrans = const algf
+
+algfixNat :: (Functor f, FAlgebraNatural f g) => (g r -> r) -> f (g r) -> g r
+algfixNat fix = nat . fmap fix
+
+instance Functor f => FAlgebraFixable f f where
+    algfix = algfixNat
 
 -- Default implementations of coalgfix for the two subclasses
 coalgfixTrans :: (FCoalgebraTrans f g, FCoalgebra f r) => (r -> g r) -> g r -> f (g r)
 coalgfixTrans = const coalgf
 
 coalgfixNat :: (Functor f, FCoalgebraNatural f g) => (r -> g r) -> g r -> f (g r)
-coalgfixNat unfix = fmap unfix . nat
+coalgfixNat unfix = fmap unfix . conat
 
 instance Functor f => FCoalgebraFixable f f where
     coalgfix = coalgfixNat

@@ -22,11 +22,14 @@ annSnd ~(AnnF _ as) = as
 instance (Functor f, Functor f', FAlgebra f a, FAlgebraTrans f f') => FAlgebraTrans f (AnnF a f') where
     algf anns = AnnF (alg $ fmap annFst anns) (algf $ fmap annSnd anns)
 
+instance (Functor f, Functor f', FAlgebra f a, FAlgebraTrans f f') => FAlgebraFixable f (AnnF a f') where
+    algfix = algfixTrans
+
 -- The "forgetful" f-coalgebra instances doesn't arise as a
 -- coalgebra transformer, but we can transform FCoalgebraNaturals
 
 instance (Functor f, FCoalgebraNatural f f') => FCoalgebraNatural f (AnnF a f') where
-    nat = nat . annSnd
+    conat = conat . annSnd
 
 instance (Functor f, FCoalgebraNatural f f') => FCoalgebraFixable f (AnnF a f') where
     coalgfix = coalgfixNat
