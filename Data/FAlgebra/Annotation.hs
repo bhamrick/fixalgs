@@ -1,6 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
+-- For testing code
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Data.FAlgebra.Annotation where
 
 import Data.FAlgebra.Base
@@ -19,46 +22,49 @@ annSnd ~(AnnF _ as) = as
 instance (Functor f, Functor f', FAlgebra f a, FAlgebraTrans f f') => FAlgebraTrans f (AnnF a f') where
     algf anns = AnnF (alg $ fmap annFst anns) (algf $ fmap annSnd anns)
 
-instance (Functor f, Functor f', FAlgebra f a, FAlgebraTrans f f') => FAlgebraFixable f (AnnF a f') where
-    algfix = algfixDefault
-
 -- The "forgetful" f-coalgebra instances doesn't arise as a
--- coalgebra transformer, but we can transform FCoalgebraFixables.
+-- coalgebra transformer, but we can transform FCoalgebraNaturals
 
-{-
-instance (Functor f, FCoalgebraFixable f g) => FCoalgebraFixable f (AnnF a g) where
-    -- Want AnnF a g r -> f (AnnF a g r)
-    -- via AnnF a g r -> g r -> f (g r) -> f r -> f (AnnF a g r)
-    -- fix :: AnnF a g r -> r
-    -- unfix :: r -> AnnF a g r
-    -- coalgfix :: FAlgebra f r => (r -> g r) -> g r -> f (g r)
-    -- annSnd . unfix :: r -> AnnF a g r -> g r
-    -- g r -> r
-    coalgfix unfix = _ . coalgfix (annSnd . unfix) . annSnd
--}
--- TODO: Is there a way to make a generic "forgetful" f-coalgebra instance?
--- Ideally it should work with nested annotations
--- Prolem is that in the forgetful instance for Fix g, we do
--- Fix g -> g (Fix g) -> f (Fix g)
--- Where the g (Fix g) -> f (Fix g) step is from the fact
--- that g "contains" f, and does not (obviously) factor into
--- g (Fix g) -> f (g (Fix g)) -> f (Fix g)
+instance (Functor f, FCoalgebraNatural f f') => FCoalgebraNatural f (AnnF a f') where
+    nat = nat . annSnd
 
--- We want the instance for Fix (AnnF a f) to be
--- coalg (Fix (AnnF _ as)) = as
+instance (Functor f, FCoalgebraNatural f f') => FCoalgebraFixable f (AnnF a f') where
+    coalgfix = coalgfixNat
 
--- i.e.
--- coalg = annSnd . unFix = fmap Fix . coalgf . unFix
--- annSnd = fmap Fix . coalgf
--- fmap unFix . annSnd = coalgf
--- annSnd :: AnnF a f r -> f r
--- unFix :: Fix g -> g (Fix g)
+-- Testing it out
+data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord)
 
--- Unify:
--- annSnd :: AnnF a f (Fix g) -> f (Fix g)
--- fmap unFix . annSnd :: AnnF a f (Fix g) -> f (g (Fix g))
+instance Functor (TreeF a) where
+    fmap f Empty = Empty
+    fmap f (Branch a b1 b2) = Branch a (f b1) (f b2)
 
--- So if we want to replace unFix by coalg, it needs to be a g-coalgebra.
+type Tree a = Fix (TreeF a)
 
--- Should use the fact that we have a natural transformation
--- AnnF a f -> f given by annSnd
+branch :: FAlgebra (TreeF a) t => a -> t -> t -> t
+branch a b1 b2 = alg $ Branch a b1 b2
+
+leaf :: FAlgebra (TreeF a) t => a -> t
+leaf a = branch a empty empty
+
+empty :: FAlgebra (TreeF a) t => t
+empty = alg Empty
+
+left :: FCoalgebra (TreeF a) t => t -> t
+left t = case coalg t of
+    Empty -> t
+    Branch _ l _ -> l
+
+right :: FCoalgebra (TreeF a) t => t -> t
+right t = case coalg t of
+    Empty -> t
+    Branch _ _ r -> r
+
+newtype Size a = Size Int deriving (Eq, Show, Ord, Num)
+
+instance FAlgebra (TreeF a) (Size a) where
+    alg Empty = 0
+    alg (Branch _ b1 b2) = 1 + b1 + b2
+
+type SizeTreeF a = AnnF (Size a) (TreeF a)
+
+type SizeTree a = Fix (SizeTreeF a)
