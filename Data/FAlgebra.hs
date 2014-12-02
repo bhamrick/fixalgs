@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -24,7 +23,7 @@ class FAlgebra f a | a -> f where
 class FCoalgebra f a | a -> f where
     coalg :: a -> f a
 
-data Fix f = Fix { unFix :: f (Fix f) }
+newtype Fix f = Fix { unFix :: f (Fix f) }
 deriving instance Eq (f (Fix f)) => Eq (Fix f)
 deriving instance Show (f (Fix f)) => Show (Fix f)
 
@@ -135,6 +134,7 @@ instance Functor f => Comonad (Cofree f) where
 -- f (AnnF f a r) -> f (f r) -> f r
 
 -- Allows combining annotations without Compose
+-- TODO: Dual of AnnF (Name?)
 data AnnF a f r = AnnF a (f r)
     deriving (Eq, Show)
 annFst (AnnF a _) = a
@@ -157,16 +157,21 @@ instance (Functor f, FAlgebra f a) => FAlgebra f (FIdentity f a) where
 instance (Functor f, FCoalgebra f a) => FCoalgebra f (FIdentity f a) where
     coalg = fmap FIdentity . coalg . runFIdentity
 
+-- These are the "transformers"
 class FAlgebraFunctor f g | g -> f where
     algf :: forall r. FAlgebra f r => f (g r) -> g r
+
+class FCoalgebraFunctor f g | g -> f where
+    coalgf :: forall r. FCoalgebra f r => g r -> f (g r)
 
 instance Functor f => FAlgebraFunctor f f where
     algf = fmap alg
 
--- This is the key!
--- We want
--- AnnF a (AnnF f b) r
--- To be an f-algebra (with appropriate conditions)
+instance Functor f => FCoalgebraFunctor f f where
+    coalgf = fmap coalg
+
+-- This is the key for annotation! We want AnnF a (AnnF f b) r
+-- to be an f-algebra (with appropriate conditions)
 instance (Functor f, Functor f', FAlgebra f a, FAlgebraFunctor f f') => FAlgebraFunctor f (AnnF a f') where
     algf anns = AnnF (alg $ fmap annFst anns) (algf $ fmap annSnd anns)
 
@@ -175,7 +180,7 @@ data AnnFix f = AnnFix { unAnnFix :: f (AnnFix f) }
 deriving instance Show (f (AnnFix f)) => Show (AnnFix f)
 
 instance (Functor f, FAlgebraFunctor f g) => FAlgebra f (AnnFix g) where
-    alg anns = AnnFix . algf $ fmap unAnnFix anns
+    alg = AnnFix . algf . fmap unAnnFix
 
 newtype Ann f a = Ann { unAnn :: Cofree f a }
 deriving instance Show (Cofree f a) => Show (Ann f a)
@@ -219,6 +224,9 @@ cons x xs = alg (C x xs)
 nil :: List a
 nil = WrapBFix (Fix N)
 
+foo :: Fix (CofreeF (ListF Int) Int)
+foo = Fix $ 5 :< C 5 foo
+
 data Pair a = Pair a a deriving (Eq, Show, Ord, Functor)
 
 data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord, Functor)
@@ -237,6 +245,16 @@ leaf a = branch a empty empty
 
 empty :: FAlgebra (TreeF a) t => t
 empty = alg Empty
+
+left :: FCoalgebra (TreeF a) t => t -> t
+left t = case coalg t of
+    Empty -> t
+    Branch _ l _ -> l
+
+right :: FCoalgebra (TreeF a) t => t -> t
+right t = case coalg t of
+    Empty -> t
+    Branch _ _ r -> r
 
 newtype Size a = Size Int deriving (Eq, Show, Ord, Num)
 
@@ -259,6 +277,9 @@ type SizeAndCombinedTree a = Ann (TreeF a) (Size a, Combined a)
 type SizeTree2 a = AnnFix (AnnF (Size a) (TreeF a))
 
 type SizeAndCombinedTree2 a = AnnFix (AnnF (Combined a) (AnnF (Size a) (TreeF a)))
+
+instance FCoalgebra f (AnnFix (AnnF a f)) where
+    coalg (AnnFix (AnnF _ as)) = as
 
 --TODO: Rewrite splay tree using this as 'smart constructors'
 --(F-algebras are 'smart constructors', F-coalgebras are 'smart pattern matchers')
