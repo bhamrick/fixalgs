@@ -52,6 +52,7 @@ class FCoalgebraFixable f g => FCoalgebraTrans f g | g -> f where
 -}
 
 newtype FAlgebraM f a = FAlgebraM { runFAlgebraM :: f a -> a }
+newtype FCoalgebraM f a = FCoalgebraM { runFCoalgebraM :: a -> f a}
 
 -- We need to be able to generalize the fixable
 -- induction to additional constraints
@@ -85,14 +86,33 @@ instance Functor f => IsoRespecting (FAlgebraM f) where
 instance (Functor f, f ~ f') => Preserving (FAlgebraM f) f' where
     trans = FAlgebraM . fmap . runFAlgebraM
 
+instance Functor f => IsoRespecting (FCoalgebraM f) where
+    liftIso (Iso to from) = Iso coalgTo coalgFrom
+        where
+        coalgTo (FCoalgebraM coalg) = FCoalgebraM (fmap to . coalg . from)
+        coalgFrom (FCoalgebraM coalg) = FCoalgebraM (fmap from . coalg . to)
+
+instance (Functor f, f ~ f') => Preserving (FCoalgebraM f) f' where
+    trans = FCoalgebraM . fmap . runFCoalgebraM
+
 -- Get structure for the fixed point of a structure preserving functor
 -- Fix g ~ g (Fix g)
 -- trans sfix :: s (g (Fix g))
 sfix :: (IsoRespecting s, Preserving s g) => s (Fix g)
 sfix = liftIso (Iso Fix unFix) $$ trans sfix
 
+-- TODO:
+-- There are (at least) two useful ways of getting an FAlgebra instance for Fix g
+-- If g preserves f-algebras, then we have the path
+-- f (Fix g) -> f (g (Fix g)) -> g (Fix g) -> Fix g
+-- Alternatively, if there is a natural transformation f -> g then we have the path
+-- f (Fix g) -> g (Fix g) -> Fix g
+-- I need to figure out how to support both. Probably newtypes for now :(
 instance (Functor f, Preserving (FAlgebraM f) g) => FAlgebra f (Fix g) where
     alg = runFAlgebraM sfix
+
+instance (Functor f, Preserving (FCoalgebraM f) g) => FCoalgebra f (Fix g) where
+    coalg = runFCoalgebraM sfix
 
 -- Let's try a simple F-Algebra
 data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord, Functor)
@@ -108,57 +128,3 @@ leaf a = alg $ Branch a e e
 
 branch :: forall a t. FAlgebra (TreeF a) t => a -> t -> t -> t
 branch a b1 b2 = alg $ Branch a b1 b2
-
--- Commenting remainder of file for exploration in Preserving
-{-
-
--- We use OverlappingInstances and TypeFamilies here so that
--- these instances are the most general when considering
--- only the instance head, so they will be considered last,
--- which allows GHC to figure out which type we want in some
--- additional circumstances.
-instance (Functor f, f ~ f') => FAlgebraTrans f f' where
-    algf = fmap alg
-
-instance (Functor f, f ~ f') => FCoalgebraTrans f f' where
-    coalgf = fmap coalg
-
-class FAlgebraFixable f g => FAlgebraNatural f g | g -> f where
-    nat :: forall r. f r -> g r
-
-class FCoalgebraFixable f g => FCoalgebraNatural f g | g -> f where
-    conat :: forall r. g r -> f r
-
-instance (Functor f, f ~ f') => FAlgebraNatural f f' where
-    nat = id
-
-instance (Functor f, f ~ f') => FCoalgebraNatural f f' where
-    conat = id
-
--- Default implementations of algfix for the two subclasses
-algfixTrans :: (FAlgebraTrans f g, FAlgebra f r) => (g r -> r) -> f (g r) -> g r
-algfixTrans = const algf
-
-algfixNat :: (Functor f, FAlgebraNatural f g) => (g r -> r) -> f (g r) -> g r
-algfixNat fix = nat . fmap fix
-
--- Default implementations of coalgfix for the two subclasses
-coalgfixTrans :: (FCoalgebraTrans f g, FCoalgebra f r) => (r -> g r) -> g r -> f (g r)
-coalgfixTrans = const coalgf
-
-coalgfixNat :: (Functor f, FCoalgebraNatural f g) => (r -> g r) -> g r -> f (g r)
-coalgfixNat unfix = fmap unfix . conat
-
-instance (Functor f, f ~ f') => FAlgebraFixable f f' where
-    algfix = algfixNat
-
-instance (Functor f, f ~ f') => FCoalgebraFixable f f' where
-    coalgfix = coalgfixNat
-
-instance (Functor f, FAlgebraFixable f g) => FAlgebra f (Fix g) where
-    alg = Fix . algfix Fix . fmap unFix
-
-instance (Functor f, FCoalgebraFixable f g) => FCoalgebra f (Fix g) where
-    coalg = fmap Fix . coalgfix unFix . unFix
-
--}
