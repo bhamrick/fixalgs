@@ -9,14 +9,22 @@
 -- It's possible it should be used everywhere, though.
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+-- For just testing
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Data.FAlgebra.Base where
 
 -- TODO: Learn about type families and see if they are a better fit
 
-class FAlgebra f a | a -> f where
+-- All fundeps are removed because they caused problems in instance declarations
+-- This just means sometimes you'll need explicit type signatures.
+class FAlgebra f a where
     alg :: f a -> a
 
-class FCoalgebra f a | a -> f where
+class FCoalgebra f a where
     coalg :: a -> f a
 
 newtype Fix f = Fix { unFix :: f (Fix f) }
@@ -29,7 +37,7 @@ instance (Functor f, FAlgebra f a1, FAlgebra f a2) => FAlgebra f (a1, a2) where
 instance (Functor f, FCoalgebra f a1, FCoalgebra f a2) => FCoalgebra f (Either a1 a2) where
     coalg (Left a) = fmap Left (coalg a)
     coalg (Right a) = fmap Right (coalg a)
-
+{-
 class FAlgebraFixable f g | g -> f where
     algfix :: forall r. FAlgebra f r => (g r -> r) -> f (g r) -> g r
 
@@ -41,6 +49,7 @@ class FAlgebraFixable f g => FAlgebraTrans f g | g -> f where
 
 class FCoalgebraFixable f g => FCoalgebraTrans f g | g -> f where
     coalgf :: forall r. FCoalgebra f r => g r -> f (g r)
+-}
 
 newtype FAlgebraM f a = FAlgebraM { runFAlgebraM :: f a -> a }
 
@@ -82,9 +91,23 @@ instance (Functor f, f ~ f') => Preserving (FAlgebraM f) f' where
 sfix :: (IsoRespecting s, Preserving s g) => s (Fix g)
 sfix = liftIso (Iso Fix unFix) $$ trans sfix
 
--- Almost, but we have a problem with fundeps
-instance Preserving (FAlgebraM f) g => FAlgebra f (Fix g) where
+instance (Functor f, Preserving (FAlgebraM f) g) => FAlgebra f (Fix g) where
     alg = runFAlgebraM sfix
+
+-- Let's try a simple F-Algebra
+data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord, Functor)
+type Tree a = Fix (TreeF a)
+
+empty :: forall a t. FAlgebra (TreeF a) t => t
+empty = alg (Empty :: TreeF a t)
+
+leaf :: forall a t. FAlgebra (TreeF a) t => a -> t
+leaf a = alg $ Branch a e e
+    where
+    e = alg (Empty :: TreeF a t)
+
+branch :: forall a t. FAlgebra (TreeF a) t => a -> t -> t -> t
+branch a b1 b2 = alg $ Branch a b1 b2
 
 -- Commenting remainder of file for exploration in Preserving
 {-
