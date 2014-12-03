@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -17,6 +18,10 @@ class FAlgebra f a | a -> f where
 
 class FCoalgebra f a | a -> f where
     coalg :: a -> f a
+
+newtype Fix f = Fix { unFix :: f (Fix f) }
+deriving instance Eq (f (Fix f)) => Eq (Fix f)
+deriving instance Show (f (Fix f)) => Show (Fix f)
 
 instance (Functor f, FAlgebra f a1, FAlgebra f a2) => FAlgebra f (a1, a2) where
     alg as = (alg (fmap fst as), alg (fmap snd as))
@@ -36,6 +41,53 @@ class FAlgebraFixable f g => FAlgebraTrans f g | g -> f where
 
 class FCoalgebraFixable f g => FCoalgebraTrans f g | g -> f where
     coalgf :: forall r. FCoalgebra f r => g r -> f (g r)
+
+newtype FAlgebraM f a = FAlgebraM { runFAlgebraM :: f a -> a }
+
+-- We need to be able to generalize the fixable
+-- induction to additional constraints
+-- s is a type constructor representing some structure.
+-- For example, for f-algebras s a ~ f a -> a
+class Preserving s g where
+    trans :: s a -> s (g a)
+
+-- This is a category but I'm not sure that instance is useful
+data Iso a b = Iso (a -> b) (b -> a)
+
+runIso :: Iso a b -> a -> b
+runIso ~(Iso to _) = to
+
+infixr 0 $$
+($$) :: Iso a b -> a -> b
+($$) = runIso
+
+invert :: Iso a b -> Iso b a
+invert (Iso f g) = Iso g f
+
+class IsoRespecting s where
+    liftIso :: Iso a b -> Iso (s a) (s b)
+
+instance Functor f => IsoRespecting (FAlgebraM f) where
+    liftIso (Iso to from) = Iso algTo algFrom
+        where
+        algTo (FAlgebraM alg) = FAlgebraM (to . alg . fmap from)
+        algFrom (FAlgebraM alg) = FAlgebraM (from . alg . fmap to)
+
+instance (Functor f, f ~ f') => Preserving (FAlgebraM f) f' where
+    trans = FAlgebraM . fmap . runFAlgebraM
+
+-- Get structure for the fixed point of a structure preserving functor
+-- Fix g ~ g (Fix g)
+-- trans sfix :: s (g (Fix g))
+sfix :: (IsoRespecting s, Preserving s g) => s (Fix g)
+sfix = liftIso (Iso Fix unFix) $$ trans sfix
+
+-- Almost, but we have a problem with fundeps
+instance Preserving (FAlgebraM f) g => FAlgebra f (Fix g) where
+    alg = runFAlgebraM sfix
+
+-- Commenting remainder of file for exploration in Preserving
+{-
 
 -- We use OverlappingInstances and TypeFamilies here so that
 -- these instances are the most general when considering
@@ -80,19 +132,10 @@ instance (Functor f, f ~ f') => FAlgebraFixable f f' where
 instance (Functor f, f ~ f') => FCoalgebraFixable f f' where
     coalgfix = coalgfixNat
 
-newtype Fix f = Fix { unFix :: f (Fix f) }
-deriving instance Eq (f (Fix f)) => Eq (Fix f)
-deriving instance Show (f (Fix f)) => Show (Fix f)
-
--- f (Fix g) -> f (g (Fix g)) -> g (Fix g) -> Fix g
-instance (Functor f, FAlgebraTrans f g) => FAlgebra f (Fix g) where
-    alg = Fix . algf . fmap unFix
-
-{-
--- Fix g -> g (Fix g) -> f (g (Fix g)) -> f (Fix g)
-instance (Functor f, FCoalgebraTrans f g) => FCoalgebra f (Fix g) where
-    coalg = fmap Fix . coalgf . unFix
--}
+instance (Functor f, FAlgebraFixable f g) => FAlgebra f (Fix g) where
+    alg = Fix . algfix Fix . fmap unFix
 
 instance (Functor f, FCoalgebraFixable f g) => FCoalgebra f (Fix g) where
     coalg = fmap Fix . coalgfix unFix . unFix
+
+-}
