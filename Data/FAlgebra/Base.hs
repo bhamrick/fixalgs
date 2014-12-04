@@ -13,11 +13,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- For just testing
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 module Data.FAlgebra.Base where
 
 -- TODO: Learn about type families and see if they are a better fit
@@ -153,26 +148,3 @@ instance (Functor f, Natural f g) => FAlgebra f (NatFix g) where
 
 instance (Functor f, Conatural f g) => FCoalgebra f (NatFix g) where
     coalgM = Iso NatFix runNatFix <$$> FCoalgebraM (conat . unFix)
-
--- Let's try a simple F-Algebra
-data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord, Functor)
-type Tree a = Fix (TreeF a)
-
-instance (a ~ a') => FAlgebra (TreeF a) (Tree a') where
-    algM = Iso runTransFix TransFix <$$> algM
-
-{-
-instance (a ~ a') => FAlgebra (TreeF a) (Tree a') where
-    algM = Iso runNatFix NatFix <$$> algM
--}
-
-empty :: forall a t. FAlgebra (TreeF a) t => t
-empty = alg (Empty :: TreeF a t)
-
-leaf :: forall a t. FAlgebra (TreeF a) t => a -> t
-leaf a = alg $ Branch a e e
-    where
-    e = alg (Empty :: TreeF a t)
-
-branch :: forall a t. FAlgebra (TreeF a) t => a -> t -> t -> t
-branch a b1 b2 = alg $ Branch a b1 b2

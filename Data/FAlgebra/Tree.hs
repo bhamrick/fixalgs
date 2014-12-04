@@ -1,9 +1,11 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Data.FAlgebra.Tree where
@@ -23,29 +25,31 @@ type Tree a = Fix (TreeF a)
 branch :: FAlgebra (TreeF a) t => a -> t -> t -> t
 branch a b1 b2 = alg $ Branch a b1 b2
 
-leaf :: FAlgebra (TreeF a) t => a -> t
-leaf a = branch a empty empty
+leaf :: forall a t. FAlgebra (TreeF a) t => a -> t
+leaf a = branch a e e
+    where
+    e = alg (Empty :: TreeF a t)
 
-empty :: FAlgebra (TreeF a) t => t
-empty = alg Empty
+empty :: forall a t. FAlgebra (TreeF a) t => t
+empty = alg (Empty :: TreeF a t)
 
-left :: FCoalgebra (TreeF a) t => t -> t
-left t = case coalg t of
+left :: forall a t. FCoalgebra (TreeF a) t => t -> t
+left t = case (coalg t :: TreeF a t) of
     Empty -> t
     Branch _ l _ -> l
 
-right :: FCoalgebra (TreeF a) t => t -> t
-right t = case coalg t of
+right :: forall a t. FCoalgebra (TreeF a) t => t -> t
+right t = case (coalg t :: TreeF a t) of
     Empty -> t
     Branch _ _ r -> r
 
-newtype Size a = Size Int deriving (Eq, Show, Ord, Num)
+newtype Size = Size Int deriving (Eq, Show, Ord, Num)
 
-instance FAlgebra (TreeF a) (Size a) where
+instance FAlgebra (TreeF a) Size where
     alg Empty = 0
     alg (Branch _ b1 b2) = 1 + b1 + b2
 
-type SizeTreeF a = AnnF (Size a) (TreeF a)
+type SizeTreeF a = AnnF Size (TreeF a)
 
 type SizeTree a = Fix (SizeTreeF a)
 
@@ -58,9 +62,37 @@ instance Num a => FAlgebra (TreeF a) (Sum a) where
 type SumTreeF a = AnnF (Sum a) (TreeF a)
 type SumTree a = Fix (SumTreeF a)
 
-type SumAndSizeTreeF a = AnnF (Size a) (AnnF (Sum a) (TreeF a))
+type SumAndSizeTreeF a = AnnF Size (AnnF (Sum a) (TreeF a))
 type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
 
+-- These instances that are maximally general on f serve as a sort of
+-- alternative to functional dependencies, since any other FAlgebra instance
+-- would overlap.
+instance (f ~ TreeF a) => FAlgebra f (Tree a) where
+    algM = Iso runTransFix TransFix <$$> algM
+
+instance (f ~ TreeF a) => FCoalgebra f (Tree a) where
+    coalgM = Iso runNatFix NatFix <$$> coalgM
+
+instance (f ~ TreeF a) => FAlgebra f (SizeTree a) where
+    algM = Iso runTransFix TransFix <$$> algM
+
+instance (f ~ TreeF a) => FCoalgebra f (SizeTree a) where
+    coalgM = Iso runNatFix NatFix <$$> coalgM
+
+instance (f ~ TreeF a, Num a) => FAlgebra f (SumTree a) where
+    algM = Iso runTransFix TransFix <$$> algM
+
+instance (f ~ TreeF a, Num a) => FCoalgebra f (SumTree a) where
+    coalgM = Iso runNatFix NatFix <$$> coalgM
+
+instance (f ~ TreeF a, Num a) => FAlgebra f (SumAndSizeTree a) where
+    algM = Iso runTransFix TransFix <$$> algM
+
+instance (f ~ TreeF a, Num a) => FCoalgebra f (SumAndSizeTree a) where
+    coalgM = Iso runNatFix NatFix <$$> coalgM
+
+-- TODO: Make reversibility work!
 data ReversibleF f a = ReversibleF Bool (f a) deriving (Eq, Show, Ord, Functor)
 
 class ReversibleFunctor f where
