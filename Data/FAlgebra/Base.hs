@@ -10,6 +10,7 @@
 -- TypeFamilies is currently only used for equality constraints
 -- It's possible it should be used everywhere, though.
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- For just testing
@@ -52,6 +53,14 @@ instance (Functor f, FCoalgebra f a1, FCoalgebra f a2) => FCoalgebra f (Either a
 
 newtype FAlgebraM f a = FAlgebraM { runFAlgebraM :: f a -> a }
 newtype FCoalgebraM f a = FCoalgebraM { runFCoalgebraM :: a -> f a}
+
+data (f :*: g) a = (f a) :*: (g a)
+
+pfst :: (f :*: g) a -> f a
+pfst (x :*: _) = x
+
+psnd :: (f :*: g) a -> g a
+psnd (_ :*: y) = y
 
 -- We need to be able to generalize the fixable
 -- induction to additional constraints
@@ -104,15 +113,13 @@ instance (Functor f, f ~ f') => Preserving (FCoalgebraM f) f' where
 sfix :: (IsoRespecting s, Preserving s g) => s (Fix g)
 sfix = Iso Fix unFix <$$> trans sfix
 
--- TODO:
 -- There are (at least) two useful ways of getting an FAlgebra instance for Fix g
 -- If g preserves f-algebras, then we have the path
 -- f (Fix g) -> f (g (Fix g)) -> g (Fix g) -> Fix g
 -- Alternatively, if there is a natural transformation f -> g then we have the path
 -- f (Fix g) -> g (Fix g) -> Fix g
--- I need to figure out how to support both. Probably newtypes for now :(
 
--- We use newtypes to distinguish the method of constructing a (co)-algebra
+-- We use newtypes to distinguish the methods of constructing a (co)-algebra
 -- for the fixed point of a functor. Datatypes can use these to define the proper
 -- instances for Fix g itself.
 newtype TransFix f = TransFix { runTransFix :: Fix f }
