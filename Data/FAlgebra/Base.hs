@@ -81,6 +81,7 @@ infixr 2 <$$>
 invert :: Iso a b -> Iso b a
 invert (Iso f g) = Iso g f
 
+-- TODO: Should this just be a 4 parameter type family?
 class IsoRespecting s where
     liftIso :: Iso a b -> Iso (s a) (s b)
 
@@ -101,6 +102,16 @@ instance Functor f => IsoRespecting (FCoalgebraM f) where
 
 instance (Functor f, f ~ f') => Preserving (FCoalgebraM f) f' where
     trans = FCoalgebraM . fmap . runFCoalgebraM
+
+instance (IsoRespecting f, IsoRespecting g) => IsoRespecting (f :*: g) where
+    liftIso iso = Iso pTo pFrom
+        where
+        pTo (x :*: y) = (iso <$$> x) :*: (iso <$$> y)
+        pFrom (x :*: y) = (invert iso <$$> x) :*: (invert iso <$$> y)
+
+-- Maximally general in the second argument to only be tried if nothing else matches
+instance (Preserving s f, Preserving t f) => Preserving (s :*: t) f where
+    trans (s :*: t) = trans s :*: trans t
 
 -- Get structure for the fixed point of a structure preserving functor
 -- Fix g ~ g (Fix g)
