@@ -135,25 +135,7 @@ instance (f ~ f') => Natural f (RevF f') where
 
 -- Coalgebra instance is
 -- Fix (RevF f) -> RevF (f (Fix (RevF f))) -> f (Fix (RevF f))
--- TODO: Consider replacing fundep with type family
-class RestrictedConatural s f f' | f f' -> s where
-    rconat :: s a -> f' a -> f a
-
 -- TODO: Can RevM go outside of annotations?
-instance (f ~ f', Preserving RevM f) => RestrictedConatural RevM f (RevF f') where
-    rconat _ (RevF False as) = as
-    rconat rev (RevF True as) = runRevM (trans rev) as
-
-instance (RestrictedConatural s f f') => RestrictedConatural s f (AnnF a f') where
-    rconat s = rconat s . annSnd
-
-newtype RNatFix f = RNatFix { runRNatFix :: Fix f }
-deriving instance Eq (f (Fix f)) => Eq (RNatFix f)
-deriving instance Show (f (Fix f)) => Show (RNatFix f)
-
-instance (Functor f, IsoRespecting s, Preserving s g, RestrictedConatural s f g) => FCoalgebra f (RNatFix g) where
-    coalgM = Iso RNatFix runRNatFix <$$> FCoalgebraM (rconat (sfix :: s (Fix g)) . unFix)
-
 -- For size & sum annotations, reversing does not change their value.
 instance ReversibleClass Size where
     reverse = id
@@ -187,6 +169,10 @@ instance (f ~ TreeF a) => FCoalgebra f (RevTree a) where
 instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
     algM = Iso runNatFix NatFix <$$> algM
 -}
+
+instance (f ~ f', Preserving RevM f) => RestrictedConatural RevM f (RevF f') where
+    rconat _ (RevF False as) = as
+    rconat rev (RevF True as) = runRevM (trans rev) as
 
 instance (f ~ TreeF a) => FCoalgebra f (RevSizeTree a) where
     coalgM = Iso runRNatFix RNatFix <$$> coalgM

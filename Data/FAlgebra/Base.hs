@@ -57,6 +57,14 @@ pfst (x :*: _) = x
 psnd :: (f :*: g) a -> g a
 psnd (_ :*: y) = y
 
+-- Unit functor, identity for :*:
+-- Isomorphic to Const ()
+data U a = U
+    deriving (Eq, Show, Ord)
+
+instance Functor U where
+    fmap _ U = U
+
 -- We need to be able to generalize the fixable
 -- induction to additional constraints
 -- s is a type constructor representing some structure.
@@ -82,6 +90,8 @@ invert :: Iso a b -> Iso b a
 invert (Iso f g) = Iso g f
 
 -- TODO: Should this just be a 4 parameter type family?
+-- So that we can lift an iso to the type (f a -> a) directly,
+-- rather than to FAlgebraM, for example.
 class IsoRespecting s where
     liftIso :: Iso a b -> Iso (s a) (s b)
 
@@ -102,6 +112,9 @@ instance Functor f => IsoRespecting (FCoalgebraM f) where
 
 instance (Functor f, f ~ f') => Preserving (FCoalgebraM f) f' where
     trans = FCoalgebraM . fmap . runFCoalgebraM
+
+instance (Functor f, Functor g) => Functor (f :*: g) where
+    fmap f (xs :*: ys) = fmap f xs :*: fmap f ys
 
 instance (IsoRespecting f, IsoRespecting g) => IsoRespecting (f :*: g) where
     liftIso iso = Iso pTo pFrom
@@ -159,3 +172,30 @@ instance (Functor f, Natural f g) => FAlgebra f (NatFix g) where
 
 instance (Functor f, Conatural f g) => FCoalgebra f (NatFix g) where
     coalgM = Iso NatFix runNatFix <$$> FCoalgebraM (conat . unFix)
+
+-- Restricted Natural classes
+-- These are natural transformations between functors that only work when the base
+-- type has sufficient structure
+-- TODO: Consider replacing fundep with type family
+class RestrictedNatural s f f' | f f' -> s where
+    rnat :: s a -> f a -> f' a
+
+class RestrictedConatural s f f' | f f' -> s where
+    rconat :: s a -> f' a -> f a
+
+newtype RNatFix f = RNatFix { runRNatFix :: Fix f }
+deriving instance Eq (f (Fix f)) => Eq (RNatFix f)
+deriving instance Show (f (Fix f)) => Show (RNatFix f)
+
+instance (Functor f, IsoRespecting s, Preserving s g, RestrictedNatural s f g) => FAlgebra f (RNatFix g) where
+    algM = Iso RNatFix runRNatFix <$$> FAlgebraM (Fix . rnat (sfix :: s (Fix g)))
+
+instance (Functor f, IsoRespecting s, Preserving s g, RestrictedConatural s f g) => FCoalgebra f (RNatFix g) where
+    coalgM = Iso RNatFix runRNatFix <$$> FCoalgebraM (rconat (sfix :: s (Fix g)) . unFix)
+
+-- Maximally general restricted (co)natural instances
+instance (f ~ f') => RestrictedNatural U f f' where
+    rnat _ = id
+
+instance (f ~ f') => RestrictedConatural U f f' where
+    rconat _ = id
