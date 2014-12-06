@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -11,7 +12,7 @@ module Data.FAlgebra.Annotation where
 import Data.FAlgebra.Base
 
 -- Isomorphic to CofreeF
-data AnnF a f r = AnnF a (f r)
+data AnnF a f r = AnnF !a (f r)
     deriving (Eq, Show)
 
 instance Functor f => Functor (AnnF a f) where

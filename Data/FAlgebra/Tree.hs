@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -116,7 +117,7 @@ instance (f ~ TreeF a, Num a) => FCoalgebra f (SumAndSizeTree a) where
     coalg = coalgNat
 
 -- TODO: Make reversibility work!
-data RevF f a = RevF Bool (f a) deriving (Eq, Show, Ord, Functor)
+data RevF f a = RevF !Bool (f a) deriving (Eq, Show, Ord, Functor)
 
 revSnd :: RevF f a -> f a
 revSnd ~(RevF _ as) = as
