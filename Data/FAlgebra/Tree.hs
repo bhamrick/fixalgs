@@ -58,6 +58,9 @@ type SizeTreeF a = AnnF Size (TreeF a)
 
 type SizeTree a = Fix (SizeTreeF a)
 
+getSize :: forall f. Preserving (AnnM Size) f => Fix f -> Size
+getSize = getAnnotation
+
 newtype Sum a = Sum a deriving (Eq, Show, Ord, Num)
 
 instance Num a => FAlgebra (TreeF a) (Sum a) where
@@ -69,6 +72,12 @@ type SumTree a = Fix (SumTreeF a)
 
 type SumAndSizeTreeF a = AnnF Size (AnnF (Sum a) (TreeF a))
 type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
+
+getSum :: forall f a. Preserving (AnnM (Sum a)) f => Fix f -> Sum a
+getSum = getAnnotation
+
+getAnnotation :: forall f a. Preserving (AnnM a) f => Fix f -> a
+getAnnotation = runAnnM sfix
 
 -- These instances that are maximally general on f serve as a sort of
 -- alternative to functional dependencies, since any other FAlgebra instance
@@ -90,9 +99,6 @@ instance (f ~ TreeF a) => FCoalgebra f (Tree a) where
 -- TODO: Can we remove the `U :*: ` from these proxies?
 instance (f ~ TreeF a) => FAlgebra f (SizeTree a) where
     alg = algRNat (Proxy :: Proxy (U :*: AnnM Size))
-
-getSize :: SizeTree a -> Size
-getSize = runAnnM (sfix :: AnnM Size (SizeTree a))
 
 instance (f ~ TreeF a) => FCoalgebra f (SizeTree a) where
     coalg = coalgNat
