@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -58,7 +59,7 @@ type SizeTreeF a = AnnF Size (TreeF a)
 
 type SizeTree a = Fix (SizeTreeF a)
 
-getSize :: forall f. Preserving (AnnM Size) f => Fix f -> Size
+getSize :: Structured (AnnM Size) a => a -> Size
 getSize = getAnnotation
 
 newtype Sum a = Sum a deriving (Eq, Show, Ord, Num)
@@ -73,11 +74,11 @@ type SumTree a = Fix (SumTreeF a)
 type SumAndSizeTreeF a = AnnF Size (AnnF (Sum a) (TreeF a))
 type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
 
-getSum :: forall f a. Preserving (AnnM (Sum a)) f => Fix f -> Sum a
+getSum :: Structured (AnnM (Sum a)) t => t -> Sum a
 getSum = getAnnotation
 
-getAnnotation :: forall f a. Preserving (AnnM a) f => Fix f -> a
-getAnnotation = runAnnM sfix
+getAnnotation :: Structured (AnnM a) t => t -> a
+getAnnotation = runAnnM struct 
 
 -- These instances that are maximally general on f serve as a sort of
 -- alternative to functional dependencies, since any other FAlgebra instance
@@ -204,3 +205,12 @@ instance (f ~ TreeF a) => FCoalgebra f (RevSizeTree a) where
 
 instance ReversibleClass (RevSizeTree a) where
     reverse = runRevM sfix
+
+idx :: (FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> t -> Maybe a
+idx !i t = case coalg t of
+    Empty -> Nothing
+    Branch a b1 b2 -> let Size lsize = getSize b1 in
+        case compare i lsize of
+            LT -> idx i b1
+            EQ -> Just a
+            GT -> idx (i - lsize - 1) b2

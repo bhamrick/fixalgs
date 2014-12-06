@@ -68,12 +68,18 @@ data U a = U
 instance Functor U where
     fmap _ U = U
 
+class Structured s a where
+    struct :: s a
+
 -- We need to be able to generalize the fixable
 -- induction to additional constraints
 -- s is a type constructor representing some structure.
 -- For example, for f-algebras s a ~ f a -> a
 class Preserving s g where
     trans :: s a -> s (g a)
+
+instance (Structured s a, Preserving s g) => Structured s (g a) where
+    struct = trans struct
 
 -- This is a category but I'm not sure that instance is useful
 data Iso a b = Iso (a -> b) (b -> a)
@@ -146,6 +152,9 @@ instance (Preserving s f, Preserving t f) => Preserving (s :*: t) f where
 -- trans sfix :: s (g (Fix g))
 sfix :: (IsoRespecting s, Preserving s g) => s (Fix g)
 sfix = Iso Fix unFix <$$> trans sfix
+
+instance (IsoRespecting s, Preserving s g) => Structured s (Fix g) where
+    struct = sfix
 
 algPreserving :: (Functor f, Preserving (FAlgebraM f) g) => f (Fix g) -> Fix g
 algPreserving = runFAlgebraM sfix
