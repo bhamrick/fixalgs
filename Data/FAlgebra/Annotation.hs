@@ -1,7 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Data.FAlgebra.Annotation where
@@ -20,6 +22,7 @@ annSnd ~(AnnF _ as) = as
 
 -- This isn't the proper instance, since it recomputes the annotations that it
 -- uses for creating the topmost annotation
+-- TODO: What is the proper instance at the finite level?
 instance (Functor f, Functor f', FAlgebra f a, Preserving (FAlgebraM f) f') => Preserving (FAlgebraM f) (AnnF a f') where
     trans alg0 = FAlgebraM $ \anns ->
         AnnF (alg $ fmap annFst anns) (runFAlgebraM (trans alg0) $ fmap annSnd anns)
@@ -46,18 +49,23 @@ instance IsoRespecting (AnnM a) where
 instance Preserving (AnnM a) (AnnF a f) where
     trans _ = AnnM annFst
 
-instance (IsoRespecting s, Preserving s f) => Preserving s (AnnF a f) where
-    trans s = Iso (AnnF undefined) annSnd <$$> trans s
+instance Preserving (AnnM b) f => Preserving (AnnM b) (AnnF a f) where
+    trans getB = AnnM (runAnnM (trans getB) . annSnd)
 
-instance (RestrictedNatural s f f', FAlgebra f a) => RestrictedNatural (s :*: AnnM a) f (AnnF a f') where
+instance (Functor f, RestrictedNatural s f f', FAlgebra f a, s' ~ (s :*: AnnM a)) => RestrictedNatural s' f (AnnF a f') where
     -- f b -> f' b -> AnnF a f' b
     -- Where the annotation comes from the algebra
     -- f b -> f a -> a
     -- and b -> a is from the AnnM structure
-    rnat (s :*: getAnn) bs = AnnF (alg (fmap getAnn bs)) . rnat s
+    rnat (s :*: (AnnM getAnn)) bs = AnnF (alg (fmap getAnn bs)) . rnat s $ bs
+
+{-
+instance (Functor f, FAlgebra f a, s ~ AnnM a) => RestrictedNatural s f (AnnF a f) where
+    rnat = undefined
+-}
 
 -- GHC wants UndecidableInstances here, but I'm not sure exactly why.
-instance (RestrictedConatural s f f') => RestrictedConatural s f (AnnF a f') where
+instance RestrictedConatural s f f' => RestrictedConatural s f (AnnF a f') where
     rconat s = rconat s . annSnd
 
 instance Conatural f f' => Conatural f (AnnF a f') where

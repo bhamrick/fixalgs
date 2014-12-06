@@ -17,6 +17,7 @@ module Data.FAlgebra.Tree where
 import Prelude hiding (reverse)
 import Data.FAlgebra.Base
 import Data.FAlgebra.Annotation
+import Data.Proxy
 
 data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord)
 
@@ -73,28 +74,40 @@ type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
 -- alternative to functional dependencies, since any other FAlgebra instance
 -- would overlap.
 instance (f ~ TreeF a) => FAlgebra f (Tree a) where
-    algM = Iso runTransFix TransFix <$$> algM
+    alg = algNat
 
 instance (f ~ TreeF a) => FCoalgebra f (Tree a) where
-    coalgM = Iso runNatFix NatFix <$$> coalgM
+    coalg = coalgNat
 
+-- This instance should go
+-- TreeF a (Fix (AnnF Size (TreeF a))) ->
+-- TreeF a (AnnF Size (TreeF a) (Fix (AnnF Size (TreeF a)))) ->
+-- TreeF a Size , TreeF a (AnnF Size (TreeF a) (Fix (AnnF Size (TreeF a)))) ->
+-- AnnF Size (TreeF a (AnnF Size (TreeF a) (Fix (AnnF Size (TreeF a))))) ->
+-- AnnF Size (TreeF a (Fix (AnnF Size (TreeF a)))) ->
+-- Fix (AnnF Size (TreeF a))
+
+-- TODO: Can we remove the `U :*: ` from these proxies?
 instance (f ~ TreeF a) => FAlgebra f (SizeTree a) where
-    algM = Iso runTransFix TransFix <$$> algM
+    alg = algRNat (Proxy :: Proxy (U :*: AnnM Size))
+
+getSize :: SizeTree a -> Size
+getSize = runAnnM (sfix :: AnnM Size (SizeTree a))
 
 instance (f ~ TreeF a) => FCoalgebra f (SizeTree a) where
-    coalgM = Iso runNatFix NatFix <$$> coalgM
+    coalg = coalgNat
 
 instance (f ~ TreeF a, Num a) => FAlgebra f (SumTree a) where
-    algM = Iso runTransFix TransFix <$$> algM
+    alg = algRNat (Proxy :: Proxy (U :*: AnnM (Sum a)))
 
 instance (f ~ TreeF a, Num a) => FCoalgebra f (SumTree a) where
-    coalgM = Iso runNatFix NatFix <$$> coalgM
+    coalg = coalgNat
 
 instance (f ~ TreeF a, Num a) => FAlgebra f (SumAndSizeTree a) where
-    algM = Iso runTransFix TransFix <$$> algM
+    alg = algRNat (Proxy :: Proxy (U :*: AnnM (Sum a) :*: AnnM Size))
 
 instance (f ~ TreeF a, Num a) => FCoalgebra f (SumAndSizeTree a) where
-    coalgM = Iso runNatFix NatFix <$$> coalgM
+    coalg = coalgNat
 
 -- TODO: Make reversibility work!
 data RevF f a = RevF Bool (f a) deriving (Eq, Show, Ord, Functor)
@@ -153,10 +166,10 @@ instance ReversibleClass (RevTree a) where
     reverse = runRevM sfix
 
 instance (f ~ TreeF a) => FAlgebra f (RevTree a) where
-    algM = Iso runNatFix NatFix <$$> algM
+    alg = algNat
 
 instance (f ~ TreeF a) => FCoalgebra f (RevTree a) where
-    coalgM = Iso runRNatFix RNatFix <$$> coalgM
+    coalg = coalgRNat (Proxy :: Proxy RevM)
 
 -- What does the f-algebra instance for RevSizeTree look like?
 -- f (Fix (AnnF Size (RevF f))) ->
@@ -170,9 +183,18 @@ instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
     algM = Iso runNatFix NatFix <$$> algM
 -}
 
+instance RestrictedNatural s f f' => RestrictedNatural s f (RevF f') where
+    rnat s = RevF False . rnat s
+
 instance (f ~ f', Preserving RevM f) => RestrictedConatural RevM f (RevF f') where
     rconat _ (RevF False as) = as
     rconat rev (RevF True as) = runRevM (trans rev) as
 
+instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
+    alg = algRNat (Proxy :: Proxy (U :*: AnnM Size))
+
 instance (f ~ TreeF a) => FCoalgebra f (RevSizeTree a) where
-    coalgM = Iso runRNatFix RNatFix <$$> coalgM
+    coalg = coalgRNat (Proxy :: Proxy RevM)
+
+instance ReversibleClass (RevSizeTree a) where
+    reverse = runRevM sfix
