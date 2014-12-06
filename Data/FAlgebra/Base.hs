@@ -8,8 +8,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
--- TypeFamilies is currently only used for equality constraints
--- It's possible it should be used everywhere, though.
+-- TypeFamilies is only used for equality constraints
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -18,12 +17,9 @@ module Data.FAlgebra.Base where
 
 import Data.Proxy
 
--- TODO: Learn about type families and see if they are a better fit
-
--- All fundeps are removed because they caused problems in instance declarations
--- This just means sometimes you'll need explicit type signatures.
-
 -- Instances can supply either a wrapped or unwrapped version
+-- No fundeps because types can disambiguate instances, and fundeps
+-- prevent some of the overlapping instances that we want.
 class FAlgebra f a where
     alg :: f a -> a
     algM :: FAlgebraM f a
@@ -137,7 +133,6 @@ instance (IsoRespecting f, IsoRespecting g) => IsoRespecting (f :*: g) where
         pTo ~(x :*: y) = (iso <$$> x) :*: (iso <$$> y)
         pFrom ~(x :*: y) = (invert iso <$$> x) :*: (invert iso <$$> y)
 
--- This is not maximally general because we want it to be applied whenever s is U
 instance Preserving U f where
     trans _ = U
 
@@ -148,28 +143,21 @@ instance (Preserving s f, Preserving t f) => Preserving (s :*: t) f where
     trans ~(s :*: t) = trans s :*: trans t
 
 -- Get structure for the fixed point of a structure preserving functor
--- Fix g ~ g (Fix g)
--- trans sfix :: s (g (Fix g))
+-- This is the "magic", where we create structure out of "nothing",
 sfix :: (IsoRespecting s, Preserving s g) => s (Fix g)
 sfix = Iso Fix unFix <$$> trans sfix
 
 instance (IsoRespecting s, Preserving s g) => Structured s (Fix g) where
     struct = sfix
 
+-- There are several ways for Fix g to be an f-(co)algebra.
+-- The algXXX and coalgXXX functions represent the ways that I know about
+-- so you just have to write an instance with the right one.
 algPreserving :: (Functor f, Preserving (FAlgebraM f) g) => f (Fix g) -> Fix g
 algPreserving = runFAlgebraM sfix
 
 coalgPreserving :: (Functor f, Preserving (FCoalgebraM f) g) => Fix g -> f (Fix g)
 coalgPreserving = runFCoalgebraM sfix
-
--- There are (at least) two useful ways of getting an FAlgebra instance for Fix g
--- If g preserves f-algebras, then we have the path
--- f (Fix g) -> f (g (Fix g)) -> g (Fix g) -> Fix g
--- Alternatively, if there is a natural transformation f -> g then we have the path
--- f (Fix g) -> g (Fix g) -> Fix g
-
--- The new solution is to use plain old functions that you can put in instance declarations
--- for your actual datatypes
 
 class Natural f g where
     nat :: f r -> g r
@@ -198,8 +186,8 @@ class RestrictedNatural s f f' where
 class RestrictedConatural s f f' where
     rconat :: s a -> f' a -> f a
 
--- With ambiguous types, this is impossible to use
--- We'll just take a proxy so that the structure can be specified
+-- With ambiguous types, this is impossible to use because there's no way to
+-- specify what structure you're using. The proxy allows us to specify that
 -- at call site
 algRNat :: forall s f g. (Functor f, IsoRespecting s, Preserving s g, RestrictedNatural s f g) => Proxy s -> f (Fix g) -> Fix g
 algRNat _ = Fix . rnat (sfix :: s (Fix g))
@@ -207,7 +195,8 @@ algRNat _ = Fix . rnat (sfix :: s (Fix g))
 coalgRNat :: forall s f g. (Functor f, IsoRespecting s, Preserving s g, RestrictedConatural s f g) => Proxy s -> Fix g -> f (Fix g)
 coalgRNat _ = rconat (sfix :: s (Fix g)) . unFix
 
--- Maximally general restricted (co)natural instances
+-- Maximally general restricted (co)natural instances to be tried only if
+-- nothing else matches.
 instance (s ~ U, f ~ f') => RestrictedNatural s f f' where
     rnat _ = id
 

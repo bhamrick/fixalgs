@@ -27,16 +27,6 @@ instance (Functor f, Functor f', FAlgebra f a, Preserving (FAlgebraM f) f') => P
     trans alg0 = FAlgebraM $ \anns ->
         AnnF (alg $ fmap annFst anns) (runFAlgebraM (trans alg0) $ fmap annSnd anns)
 
--- Real instance for Fix (AnnF a f) should be
--- f Fix (AnnF a f) -> f (AnnF a f (Fix (AnnF a f))) ->
--- AnnF a f (AnnF a f (Fix (AnnF a f))) ->
--- AnnF a f (Fix (AnnF a f)) -> Fix (AnnF a f)
--- TODO: How to extend this to more than one annotation?
--- Maybe f (AnnF a b) -> f' c -> AnnF a f' c
--- Perhaps this can be encoded as a "Restricted Natural Transformation"
--- Where the structure is s c ~ (c -> a)
--- That extracts the annotation
-
 -- Annotation extracting structure
 newtype AnnM a c = AnnM { runAnnM :: c -> a }
 
@@ -52,19 +42,10 @@ instance Preserving (AnnM a) (AnnF a f) where
 instance Preserving (AnnM b) f => Preserving (AnnM b) (AnnF a f) where
     trans getB = AnnM (runAnnM (trans getB) . annSnd)
 
+-- GHC wants UndecidableInstances here
 instance (Functor f, RestrictedNatural s f f', FAlgebra f a, s' ~ (s :*: AnnM a)) => RestrictedNatural s' f (AnnF a f') where
-    -- f b -> f' b -> AnnF a f' b
-    -- Where the annotation comes from the algebra
-    -- f b -> f a -> a
-    -- and b -> a is from the AnnM structure
     rnat (s :*: (AnnM getAnn)) bs = AnnF (alg (fmap getAnn bs)) . rnat s $ bs
 
-{-
-instance (Functor f, FAlgebra f a, s ~ AnnM a) => RestrictedNatural s f (AnnF a f) where
-    rnat = undefined
--}
-
--- GHC wants UndecidableInstances here, but I'm not sure exactly why.
 instance RestrictedConatural s f f' => RestrictedConatural s f (AnnF a f') where
     rconat s = rconat s . annSnd
 

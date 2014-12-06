@@ -81,21 +81,13 @@ getAnnotation :: Structured (AnnM a) t => t -> a
 getAnnotation = runAnnM struct 
 
 -- These instances that are maximally general on f serve as a sort of
--- alternative to functional dependencies, since any other FAlgebra instance
--- would overlap.
+-- alternative to functional dependencies, so you can, for example,
+-- write coalg t without explicit type signatures.
 instance (f ~ TreeF a) => FAlgebra f (Tree a) where
     alg = algNat
 
 instance (f ~ TreeF a) => FCoalgebra f (Tree a) where
     coalg = coalgNat
-
--- This instance should go
--- TreeF a (Fix (AnnF Size (TreeF a))) ->
--- TreeF a (AnnF Size (TreeF a) (Fix (AnnF Size (TreeF a)))) ->
--- TreeF a Size , TreeF a (AnnF Size (TreeF a) (Fix (AnnF Size (TreeF a)))) ->
--- AnnF Size (TreeF a (AnnF Size (TreeF a) (Fix (AnnF Size (TreeF a))))) ->
--- AnnF Size (TreeF a (Fix (AnnF Size (TreeF a)))) ->
--- Fix (AnnF Size (TreeF a))
 
 -- TODO: Can we remove the `U :*: ` from these proxies?
 instance (f ~ TreeF a) => FAlgebra f (SizeTree a) where
@@ -116,16 +108,15 @@ instance (f ~ TreeF a, Num a) => FAlgebra f (SumAndSizeTree a) where
 instance (f ~ TreeF a, Num a) => FCoalgebra f (SumAndSizeTree a) where
     coalg = coalgNat
 
--- TODO: Make reversibility work!
 data RevF f a = RevF !Bool (f a) deriving (Eq, Show, Ord, Functor)
 
 revSnd :: RevF f a -> f a
 revSnd ~(RevF _ as) = as
 
-class ReversibleClass a where
-    reverse :: a -> a
-
 newtype RevM a = RevM { runRevM :: a -> a }
+
+reverse :: Structured RevM a => a -> a
+reverse = runRevM struct
 
 -- TODO: Can this be automated?
 instance IsoRespecting RevM where
@@ -139,12 +130,12 @@ instance Preserving RevM (TreeF a) where
         Empty -> Empty
         Branch a b1 b2 -> Branch a (r b2) (r b1)
 
-instance (ReversibleClass a, Preserving RevM f) => Preserving RevM (AnnF a f) where
+instance (Structured RevM a, Preserving RevM f) => Preserving RevM (AnnF a f) where
     trans rev = RevM $ \(AnnF a xs) ->
         AnnF (reverse a) (runRevM (trans rev) xs)
 
-instance ReversibleClass (RevF f a) where
-    reverse (RevF r xs) = RevF (not r) xs
+instance Structured RevM (RevF f a) where
+    struct = RevM $ \(RevF r xs) -> RevF (not r) xs
 
 -- RevF "captures" the reverse operation
 instance Preserving RevM (RevF f) where
@@ -157,11 +148,11 @@ instance (f ~ f') => Natural f (RevF f') where
 -- Fix (RevF f) -> RevF (f (Fix (RevF f))) -> f (Fix (RevF f))
 -- TODO: Can RevM go outside of annotations?
 -- For size & sum annotations, reversing does not change their value.
-instance ReversibleClass Size where
-    reverse = id
+instance Structured RevM Size where
+    struct = RevM id
 
-instance ReversibleClass (Sum a) where
-    reverse = id
+instance Structured RevM (Sum a) where
+    struct = RevM id
 
 type RevTreeF a = RevF (TreeF a)
 type RevTree a = Fix (RevTreeF a)
@@ -169,26 +160,11 @@ type RevTree a = Fix (RevTreeF a)
 type RevSizeTreeF a = AnnF Size (RevF (TreeF a))
 type RevSizeTree a = Fix (RevSizeTreeF a)
 
-instance ReversibleClass (RevTree a) where
-    reverse = runRevM sfix
-
 instance (f ~ TreeF a) => FAlgebra f (RevTree a) where
     alg = algNat
 
 instance (f ~ TreeF a) => FCoalgebra f (RevTree a) where
     coalg = coalgRNat (Proxy :: Proxy RevM)
-
--- What does the f-algebra instance for RevSizeTree look like?
--- f (Fix (AnnF Size (RevF f))) ->
--- f (AnnF Size (RevF f) (Fix (AnnF Size (RevF f)))) ->
--- RevF f (AnnF Size (RevF f) (Fix (AnnF Size (RevF f)))) ->
--- AnnF Size (RevF f (AnnF Size (RevF f) (Fix (AnnF Size (RevF f))))) ->
--- AnnF Size (RevF f (Fix (AnnF Size (RevF f)))) ->
--- Fix (AnnF Size (RevF f))
-{-
-instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
-    algM = Iso runNatFix NatFix <$$> algM
--}
 
 instance RestrictedNatural s f f' => RestrictedNatural s f (RevF f') where
     rnat s = RevF False . rnat s
@@ -202,9 +178,6 @@ instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
 
 instance (f ~ TreeF a) => FCoalgebra f (RevSizeTree a) where
     coalg = coalgRNat (Proxy :: Proxy RevM)
-
-instance ReversibleClass (RevSizeTree a) where
-    reverse = runRevM sfix
 
 idx :: (FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> t -> Maybe a
 idx !i t = case coalg t of
