@@ -12,7 +12,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS -Wall #-}
 module Data.FAlgebra.Tree where
 
 import Prelude hiding (reverse)
@@ -178,12 +177,3 @@ instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
 
 instance (f ~ TreeF a) => FCoalgebra f (RevSizeTree a) where
     coalg = coalgRNat (Proxy :: Proxy RevM)
-
-idx :: (FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> t -> Maybe a
-idx !i t = case coalg t of
-    Empty -> Nothing
-    Branch a b1 b2 -> let Size lsize = getSize b1 in
-        case compare i lsize of
-            LT -> idx i b1
-            EQ -> Just a
-            GT -> idx (i - lsize - 1) b2
