@@ -173,7 +173,8 @@ isolateInterval l r t = let s = getSize t in
     isolateSuffix :: Int -> t -> TreeZip a t
     isolateSuffix l = right . splay . idx (l-1)
     isolateGeneral :: Int -> Int -> t -> TreeZip a t
-    isolateGeneral l r = finalizeInterval . (idx (l-1) :: t -> TreeZip a t)
+    isolateGeneral l r =
+        finalizeInterval . (idx (l-1) :: t -> TreeZip a t)
         . zip . splay . (idx r :: t -> TreeZip a t)
         . zip . splay . (idx (l-1) :: t -> TreeZip a t)
         . zip . splay . (idx l :: t -> TreeZip a t)
