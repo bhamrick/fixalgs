@@ -139,7 +139,7 @@ idxSlot i = idxSlot' (Size i) . root
 find :: forall a t. (Ord a, FCoalgebra (TreeF a) t) => a -> t -> TreeZip a t
 find x = find' x . root
     where
-    find' :: (Ord a, FCoalgebra (TreeF a) t) => a -> TreeZip a t -> TreeZip a t
+    find' :: a -> TreeZip a t -> TreeZip a t
     find' x z@(TreeZip t _) = case (coalg t :: TreeF a t) of
         Empty -> z
         Branch a _ _ -> case compare x a of
@@ -156,3 +156,28 @@ insert' x (TreeZip t p) = case (coalg t :: TreeF a t) of
 -- i.e. Inserting at index 0 moves every element one index up.
 insertAt :: (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> a -> t -> t
 insertAt i x = zip . splay . insert' x . idxSlot i
+
+-- We can isolate an interval with splays and potentially a rotation
+-- TODO: Can this be done with only splays?
+-- Isolate the interval [l, r)
+isolateInterval :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> Int -> t -> TreeZip a t
+isolateInterval l r t = let s = getSize t in
+    case (l <= 0, Size r >= s) of
+        (True,  True ) -> root t
+        (True,  False) -> isolatePrefix r t
+        (False, True ) -> isolateSuffix l t
+        (False, False) -> isolateGeneral l r t
+    where
+    isolatePrefix :: Int -> t -> TreeZip a t
+    isolatePrefix r = left . splay . idx r
+    isolateSuffix :: Int -> t -> TreeZip a t
+    isolateSuffix l = right . splay . idx (l-1)
+    isolateGeneral :: Int -> Int -> t -> TreeZip a t
+    isolateGeneral l r = finalizeInterval . (idx (l-1) :: t -> TreeZip a t)
+        . zip . splay . (idx r :: t -> TreeZip a t)
+        . zip . splay . (idx (l-1) :: t -> TreeZip a t)
+        . zip . splay . (idx l :: t -> TreeZip a t)
+    finalizeInterval z@(TreeZip t p) = let TreeZip t' _ = right z in
+        case (coalg t' :: TreeF a t) of
+            Empty -> right . rotate $ z
+            _     -> right z
