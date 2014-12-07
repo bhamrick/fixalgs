@@ -85,21 +85,20 @@ instance (f ~ TreeF a) => FAlgebra f (Tree a) where
 instance (f ~ TreeF a) => FCoalgebra f (Tree a) where
     coalg = coalgNat
 
--- TODO: Can we remove the `U :*: ` from these proxies?
 instance (f ~ TreeF a) => FAlgebra f (SizeTree a) where
-    alg = algRNat (Proxy :: Proxy (U :*: AnnM Size))
+    alg = algRNat (Proxy :: Proxy (AnnM Size))
 
 instance (f ~ TreeF a) => FCoalgebra f (SizeTree a) where
     coalg = coalgNat
 
 instance (f ~ TreeF a, Num a) => FAlgebra f (SumTree a) where
-    alg = algRNat (Proxy :: Proxy (U :*: AnnM (Sum a)))
+    alg = algRNat (Proxy :: Proxy (AnnM (Sum a)))
 
 instance (f ~ TreeF a, Num a) => FCoalgebra f (SumTree a) where
     coalg = coalgNat
 
 instance (f ~ TreeF a, Num a) => FAlgebra f (SumAndSizeTree a) where
-    alg = algRNat (Proxy :: Proxy (U :*: AnnM (Sum a) :*: AnnM Size))
+    alg = algRNat (Proxy :: Proxy (AnnM (Sum a) :*: AnnM Size))
 
 instance (f ~ TreeF a, Num a) => FCoalgebra f (SumAndSizeTree a) where
     coalg = coalgNat
@@ -170,7 +169,7 @@ instance (f ~ f', Preserving RevM f) => RestrictedConatural RevM f (RevF f') whe
     rconat rev (RevF True as) = runRevM (trans rev) as
 
 instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
-    alg = algRNat (Proxy :: Proxy (U :*: AnnM Size))
+    alg = algRNat (Proxy :: Proxy (AnnM Size))
 
 instance (f ~ TreeF a) => FCoalgebra f (RevSizeTree a) where
     coalg = coalgRNat (Proxy :: Proxy RevM)

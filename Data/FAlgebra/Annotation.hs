@@ -4,7 +4,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverlappingInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module Data.FAlgebra.Annotation where
 
@@ -42,8 +41,11 @@ instance Preserving (AnnM a) (AnnF a f) where
 instance Preserving (AnnM b) f => Preserving (AnnM b) (AnnF a f) where
     trans getB = AnnM (runAnnM (trans getB) . annSnd)
 
--- GHC wants UndecidableInstances here
-instance (Functor f, RestrictedNatural s f f', FAlgebra f a, s' ~ (s :*: AnnM a)) => RestrictedNatural s' f (AnnF a f') where
+-- Base case instance to avoid needing extraneous Us
+instance (Functor f, Natural f f', FAlgebra f a) => RestrictedNatural (AnnM a) f (AnnF a f') where
+    rnat (AnnM getAnn) bs = AnnF (alg (fmap getAnn bs)) . nat $ bs
+
+instance (Functor f, RestrictedNatural s f f', FAlgebra f a) => RestrictedNatural (s :*: AnnM a) f (AnnF a f') where
     rnat (s :*: (AnnM getAnn)) bs = AnnF (alg (fmap getAnn bs)) . rnat s $ bs
 
 instance RestrictedConatural s f f' => RestrictedConatural s f (AnnF a f') where
