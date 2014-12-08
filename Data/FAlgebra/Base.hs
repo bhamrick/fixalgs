@@ -18,17 +18,9 @@ import Data.Proxy
 -- prevent some of the overlapping instances that we want.
 class FAlgebra f a where
     alg :: f a -> a
-    algM :: FAlgebraM f a
-
-    algM = FAlgebraM alg
-    alg = runFAlgebraM algM
 
 class FCoalgebra f a where
     coalg :: a -> f a
-    coalgM :: FCoalgebraM f a
-
-    coalgM = FCoalgebraM coalg
-    coalg = runFCoalgebraM coalgM
 
 newtype Fix f = Fix { unFix :: f (Fix f) }
 deriving instance Eq (f (Fix f)) => Eq (Fix f)
