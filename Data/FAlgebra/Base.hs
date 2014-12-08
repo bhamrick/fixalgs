@@ -11,6 +11,9 @@
 
 module Data.FAlgebra.Base where
 
+import Control.Applicative
+import Data.Foldable
+import Data.Traversable
 import Data.Proxy
 
 -- Instances can supply either a wrapped or unwrapped version
@@ -190,3 +193,16 @@ instance (s ~ U, f ~ f') => RestrictedNatural s f f' where
 
 instance (s ~ U, f ~ f') => RestrictedConatural s f f' where
     rconat _ = id
+
+-- Foldable and Traversable for fixed points
+data Folder a b = Folder { runFolder :: b -> a }
+
+instance (Functor f, FAlgebra f a) => Preserving (Folder a) f where
+    trans (Folder fold) = Folder $ alg . fmap fold
+
+-- data Traverser a b = Traverser { runTraverser :: forall f. Applicative f => b -> f a }
+-- Rank 1 version
+data Traverser a f b = Traverser { runTraverser :: b -> f a }
+
+instance (Traversable f, FAlgebra f a, Applicative g) => Preserving (Traverser a g) f where
+    trans (Traverser trav) = Traverser $ fmap alg . traverse trav
