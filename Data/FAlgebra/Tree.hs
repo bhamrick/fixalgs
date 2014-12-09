@@ -139,9 +139,6 @@ instance Preserving RevM (RevF f) where
 instance (f ~ f') => Natural f (RevF f') where
     nat = RevF False
 
--- Coalgebra instance is
--- Fix (RevF f) -> RevF (f (Fix (RevF f))) -> f (Fix (RevF f))
--- TODO: Can RevM go outside of annotations?
 -- For size & sum annotations, reversing does not change their value.
 instance Structured RevM Size where
     struct = RevM id
@@ -164,12 +161,27 @@ instance (f ~ TreeF a) => FCoalgebra f (RevTree a) where
 instance RestrictedNatural s f f' => RestrictedNatural s f (RevF f') where
     rnat s = RevF False . rnat s
 
-instance (f ~ f', Preserving RevM f) => RestrictedConatural RevM f (RevF f') where
-    rconat _ (RevF False as) = as
-    rconat rev (RevF True as) = runRevM (trans rev) as
+instance (Preserving RevM f', RestrictedConatural RevM f f') => RestrictedConatural RevM f (RevF f') where
+    rconat rev (RevF False as) = rconat rev as
+    rconat rev (RevF True as) = rconat rev $ runRevM (trans rev) as
 
 instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
     alg = algRNat (Proxy :: Proxy (AnnM Size))
 
 instance (f ~ TreeF a) => FCoalgebra f (RevSizeTree a) where
+    coalg = coalgRNat (Proxy :: Proxy RevM)
+
+type SizeRevTreeF a = RevF (AnnF Size (TreeF a))
+type SizeRevTree a = Fix (SizeRevTreeF a)
+
+instance (Structured RevM a, Preserving (AnnM a) f) => Preserving (AnnM a) (RevF f) where
+    trans annm = AnnM getAnn'
+        where
+        getAnn' (RevF False bs) = runAnnM (trans annm) bs
+        getAnn' (RevF True bs) = reverse (runAnnM (trans annm) bs)
+
+instance (f ~ TreeF a) => FAlgebra f (SizeRevTree a) where
+    alg = algRNat (Proxy :: Proxy (AnnM Size))
+
+instance (f ~ TreeF a) => FCoalgebra f (SizeRevTree a) where
     coalg = coalgRNat (Proxy :: Proxy RevM)

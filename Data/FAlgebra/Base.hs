@@ -187,11 +187,11 @@ coalgRNat _ = rconat (sfix :: s (Fix g)) . unFix
 
 -- Maximally general restricted (co)natural instances to be tried only if
 -- nothing else matches.
-instance (s ~ U, f ~ f') => RestrictedNatural s f f' where
-    rnat _ = id
+instance Natural f f' => RestrictedNatural s f f' where
+    rnat _ = nat
 
-instance (s ~ U, f ~ f') => RestrictedConatural s f f' where
-    rconat _ = id
+instance Conatural f f' => RestrictedConatural s f f' where
+    rconat _ = conat
 
 -- Foldable and Traversable for fixed points
 data Folder a b = Folder { runFolder :: b -> a }
