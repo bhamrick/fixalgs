@@ -14,7 +14,6 @@ module Data.FAlgebra.Base where
 import Control.Applicative
 import Data.Foldable
 import Data.Traversable
-import Data.Proxy
 
 -- Instances can supply either a wrapped or unwrapped version
 -- No fundeps because types can disambiguate instances, and fundeps
@@ -180,10 +179,10 @@ class RestrictedConatural s f f' where
 -- With ambiguous types, this is impossible to use because there's no way to
 -- specify what structure you're using. The proxy allows us to specify that
 -- at call site
-algRNat :: forall s f g. (Functor f, IsoRespecting s, Preserving s g, RestrictedNatural s f g) => Proxy s -> f (Fix g) -> Fix g
+algRNat :: forall proxy s f g. (Functor f, IsoRespecting s, Preserving s g, RestrictedNatural s f g) => proxy s -> f (Fix g) -> Fix g
 algRNat _ = Fix . rnat (sfix :: s (Fix g))
 
-coalgRNat :: forall s f g. (Functor f, IsoRespecting s, Preserving s g, RestrictedConatural s f g) => Proxy s -> Fix g -> f (Fix g)
+coalgRNat :: forall proxy s f g. (Functor f, IsoRespecting s, Preserving s g, RestrictedConatural s f g) => proxy s -> Fix g -> f (Fix g)
 coalgRNat _ = rconat (sfix :: s (Fix g)) . unFix
 
 -- Maximally general restricted (co)natural instances to be tried only if
