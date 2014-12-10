@@ -73,9 +73,6 @@ type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
 getSum :: Structured (AnnM (Sum a)) t => t -> Sum a
 getSum = getAnnotation
 
-getAnnotation :: Structured (AnnM a) t => t -> a
-getAnnotation = runAnnM struct 
-
 -- These instances that are maximally general on f serve as a sort of
 -- alternative to functional dependencies, so you can, for example,
 -- write coalg t without explicit type signatures.

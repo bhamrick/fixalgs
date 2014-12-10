@@ -54,6 +54,10 @@ right (TreeZip t p) = case coalg t of
     Empty -> TreeZip t p
     Branch a b1 b2 -> TreeZip b2 (alg $ RBranch a b1 p)
 
+-- TODO: Consider replacing this with a lens
+local :: (t -> t) -> TreeZip a t -> TreeZip a t
+local f (TreeZip t p) = TreeZip (f t) p
+
 -- Constraint is just to remove explicit type signatures
 root :: FCoalgebra (TreeF a) t => t -> TreeZip a t
 root t = TreeZip t (alg Root)

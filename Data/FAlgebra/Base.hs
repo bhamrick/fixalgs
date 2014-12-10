@@ -143,6 +143,7 @@ instance (IsoRespecting s, Preserving s g) => Structured s (Fix g) where
 -- There are several ways for Fix g to be an f-(co)algebra.
 -- The algXXX and coalgXXX functions represent the ways that I know about
 -- so you just have to write an instance with the right one.
+-- For recursive structures, you probably want (co)algRNat.
 algPreserving :: (Functor f, Preserving (FAlgebraM f) g) => f (Fix g) -> Fix g
 algPreserving = runFAlgebraM sfix
 

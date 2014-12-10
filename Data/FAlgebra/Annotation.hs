@@ -29,6 +29,9 @@ instance (Functor f, Functor f', FAlgebra f a, Preserving (FAlgebraM f) f') => P
 -- Annotation extracting structure
 newtype AnnM a c = AnnM { runAnnM :: c -> a }
 
+getAnnotation :: Structured (AnnM a) t => t -> a
+getAnnotation = runAnnM struct 
+
 instance IsoRespecting (AnnM a) where
     liftIso (Iso to from) = Iso annTo annFrom
         where
