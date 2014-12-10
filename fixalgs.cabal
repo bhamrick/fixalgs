@@ -18,5 +18,13 @@ library
   exposed-modules:     Data.FAlgebra.Base
                      , Data.FAlgebra.Annotation
                      , Data.FAlgebra.Tree
+                     , Data.FAlgebra.TreeZipper
   -- other-modules:       
   build-depends:       base >=4.7 && <5.0
+
+executable range_reverse
+  hs-source-dirs:      Examples/RangeReverse
+  main-is:             Main.hs
+  build-depends:       base >= 4.7 && <5.0
+                     , fixalgs
+                     , random >=1.0
