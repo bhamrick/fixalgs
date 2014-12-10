@@ -88,13 +88,17 @@ runComparison size nrevs = do
     putStrLn $ show size ++ " " ++ show nrevs
     testcase <- randomTestCase size nrevs
     listStart <- getCPUTime
-    length (listRunTestCase testcase) `seq` return ()
+    let listResult = listRunTestCase testcase
+    -- Force entire list
+    length listResult `seq` return ()
     listEnd <- getCPUTime
     print . asSeconds $ listEnd - listStart
     treeStart <- getCPUTime
-    length (treeToList (treeRunTestCase testcase)) `seq` return ()
+    let treeResult = treeToList (treeRunTestCase testcase)
+    length treeResult `seq` return ()
     treeEnd <- getCPUTime
     print . asSeconds $ treeEnd - treeStart
+    print $ listResult == treeResult
 
 main :: IO ()
 main = do
