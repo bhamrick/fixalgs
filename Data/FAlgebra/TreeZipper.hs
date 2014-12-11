@@ -165,12 +165,14 @@ insertAt i x = zip . splay . insert' x . idxSlot i
 -- TODO: Can this be done with only splays?
 -- Isolate the interval [l, r)
 isolateInterval :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> Int -> t -> TreeZip a t
-isolateInterval l r t = let s = getSize t in
-    case (l <= 0, Size r >= s) of
-        (True,  True ) -> root t
-        (True,  False) -> isolatePrefix r t
-        (False, True ) -> isolateSuffix l t
-        (False, False) -> isolateGeneral l r t
+isolateInterval l r t = if l == r
+    then idxSlot l t
+    else let s = getSize t in
+        case (l <= 0, Size r >= s) of
+            (True,  True ) -> root t
+            (True,  False) -> isolatePrefix r t
+            (False, True ) -> isolateSuffix l t
+            (False, False) -> isolateGeneral l r t
     where
     isolatePrefix :: Int -> t -> TreeZip a t
     isolatePrefix r = left . splay . idx r

@@ -84,7 +84,7 @@ infixr 2 <$$>
 invert :: Iso a b -> Iso b a
 invert (Iso f g) = Iso g f
 
--- TODO: Should this just be a 4 parameter type family?
+-- TODO: Should this just be a 4 parameter type class?
 -- So that we can lift an iso to the type (f a -> a) directly,
 -- rather than to FAlgebraM, for example.
 class IsoRespecting s where

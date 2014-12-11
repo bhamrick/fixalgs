@@ -43,7 +43,7 @@ treeToList t = case coalg t of
 data TestCase = TestCase
     { size :: Int
     , reversals :: [(Int, Int)]
-    }
+    } deriving (Eq, Show)
 
 runTestCase :: (Int -> a) -> (Int -> Int -> a -> a) -> TestCase -> a
 runTestCase init revRange (TestCase { size = s, reversals = revs }) = go (init s) revs
@@ -87,14 +87,17 @@ runComparison :: Int -> Int -> IO ()
 runComparison size nrevs = do
     putStrLn $ show size ++ " " ++ show nrevs
     testcase <- randomTestCase size nrevs
+    -- print testcase
     listStart <- getCPUTime
     let listResult = listRunTestCase testcase
     -- Force entire list
+    -- print listResult
     length listResult `seq` return ()
     listEnd <- getCPUTime
     print . asSeconds $ listEnd - listStart
     treeStart <- getCPUTime
     let treeResult = treeToList (treeRunTestCase testcase)
+    -- print treeResult
     length treeResult `seq` return ()
     treeEnd <- getCPUTime
     print . asSeconds $ treeEnd - treeStart
@@ -107,4 +110,4 @@ main = do
     runComparison 4000 4000
     runComparison 8000 8000
     runComparison 16000 16000
-    runComparison 32000 32000
+    -- runComparison 32000 32000
