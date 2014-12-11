@@ -19,9 +19,7 @@ instance Functor f => Functor (AnnF a f) where
 annFst ~(AnnF a _) = a
 annSnd ~(AnnF _ as) = as
 
--- This isn't the proper instance, since it recomputes the annotations that it
--- uses for creating the topmost annotation
--- TODO: What is the proper instance at the finite level?
+-- This works, but generally not what you want to do because it recomputes annotations for the previous level
 instance (Functor f, Functor f', FAlgebra f a, Preserving (FAlgebraM f) f') => Preserving (FAlgebraM f) (AnnF a f') where
     trans alg0 = FAlgebraM $ \anns ->
         AnnF (alg $ fmap annFst anns) (runFAlgebraM (trans alg0) $ fmap annSnd anns)

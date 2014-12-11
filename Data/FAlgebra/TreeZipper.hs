@@ -54,12 +54,10 @@ right (TreeZip t p) = case coalg t of
     Empty -> TreeZip t p
     Branch a b1 b2 -> TreeZip b2 (alg $ RBranch a b1 p)
 
--- TODO: Consider replacing this with a lens
 local :: (t -> t) -> TreeZip a t -> TreeZip a t
 local f (TreeZip t p) = TreeZip (f t) p
 
--- Constraint is just to remove explicit type signatures
-root :: FCoalgebra (TreeF a) t => t -> TreeZip a t
+root :: t -> TreeZip a t
 root t = TreeZip t (alg Root)
 
 zip :: FAlgebra (TreeF a) t => TreeZip a t -> t
@@ -162,10 +160,9 @@ insertAt :: (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Structured (AnnM Size
 insertAt i x = zip . splay . insert' x . idxSlot i
 
 -- We can isolate an interval with splays and potentially a rotation
--- TODO: Can this be done with only splays?
 -- Isolate the interval [l, r)
 isolateInterval :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> Int -> t -> TreeZip a t
-isolateInterval l r t = if l == r
+isolateInterval l r t = if l >= r
     then idxSlot l t
     else let s = getSize t in
         case (l <= 0, Size r >= s) of

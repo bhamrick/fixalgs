@@ -110,7 +110,6 @@ newtype RevM a = RevM { runRevM :: a -> a }
 reverse :: Structured RevM a => a -> a
 reverse = runRevM struct
 
--- TODO: Can this be automated?
 instance IsoRespecting RevM where
     liftIso (Iso to from) = Iso revTo revFrom
         where
