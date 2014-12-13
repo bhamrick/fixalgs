@@ -15,10 +15,13 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  exposed-modules:     Data.FAlgebra.Base
-                     , Data.FAlgebra.Annotation
+  exposed-modules:     Data.FAlgebra.Annotation
+                     , Data.FAlgebra.Base
                      , Data.FAlgebra.Tree
-                     , Data.FAlgebra.TreeZipper
+                     , Data.FAlgebra.Tree.BST
+                     , Data.FAlgebra.Tree.Splay
+                     , Data.FAlgebra.Tree.Indexed
+                     , Data.FAlgebra.Tree.Zipper
   -- other-modules:       
   build-depends:       base >=4.7 && <5.0
 

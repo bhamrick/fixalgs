@@ -9,7 +9,9 @@ import Control.Monad
 import Data.FAlgebra.Annotation
 import Data.FAlgebra.Base
 import Data.FAlgebra.Tree
-import Data.FAlgebra.TreeZipper
+import Data.FAlgebra.Tree.Indexed
+import Data.FAlgebra.Tree.Splay
+import Data.FAlgebra.Tree.Zipper
 
 import System.CPUTime
 import System.Random
