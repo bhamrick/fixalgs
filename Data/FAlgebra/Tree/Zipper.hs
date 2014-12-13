@@ -44,19 +44,8 @@ up (TreeZip t p) = case coalg p of
     LBranch a t' p' -> TreeZip (branch a t t') p'
     RBranch a t' p' -> TreeZip (branch a t' t) p'
 
--- These were conflicting names, because they are actually the same function!
-{-
-left :: FCoalgebra (TreeF a) t => TreeZip a t -> TreeZip a t
-left (TreeZip t p) = case coalg t of
-    Empty -> TreeZip t p
-    Branch a b1 b2 -> TreeZip b1 (alg $ LBranch a b2 p)
-
-right :: FCoalgebra (TreeF a) t => TreeZip a t -> TreeZip a t
-right (TreeZip t p) = case coalg t of
-    Empty -> TreeZip t p
-    Branch a b1 b2 -> TreeZip b2 (alg $ RBranch a b1 p)
--}
-
+-- Zippers have a natural F-Coalgebra structure
+-- This allows us to use `left` and `right` for zippers as well.
 instance (a ~ a', FCoalgebra (TreeF a) t) => FCoalgebra (TreeF a') (TreeZip a t) where
     coalg (TreeZip t p) = case coalg t of
         Empty -> Empty
@@ -64,7 +53,7 @@ instance (a ~ a', FCoalgebra (TreeF a) t) => FCoalgebra (TreeF a') (TreeZip a t)
             (TreeZip b1 (alg $ LBranch a b2 p))
             (TreeZip b2 (alg $ RBranch a b1 p))
 
--- This could be replaced by a lens
+-- The next two functions could (should?) be replaced by a lens
 local :: (t -> t) -> TreeZip a t -> TreeZip a t
 local f (TreeZip t p) = TreeZip (f t) p
 
