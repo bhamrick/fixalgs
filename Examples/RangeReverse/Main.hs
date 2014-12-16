@@ -5,6 +5,7 @@ import Prelude hiding (reverse, zip)
 import qualified Prelude as P
 
 import Control.Monad
+import Control.Monad.Identity (Identity(..), runIdentity)
 
 import Data.FAlgebra.Annotation
 import Data.FAlgebra.Base
@@ -29,8 +30,11 @@ listReverseRange l r as = as1 ++ reverse as2 ++ as3
     as2 = drop l (take r as)
     as3 = drop r as
 
+over :: ((a -> Identity b) -> s -> Identity t) -> (a -> b) -> s -> t
+over l f = runIdentity . l (Identity . f)
+
 treeReverseRange :: Int -> Int -> RevSizeTree a -> RevSizeTree a
-treeReverseRange l r = zip . local reverse . isolateInterval l r
+treeReverseRange l r = zip . over _here reverse . isolateInterval l r
 
 treeFromList :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => [a] -> t
 treeFromList = foldr (insertAt 0) e

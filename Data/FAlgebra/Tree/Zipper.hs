@@ -53,12 +53,9 @@ instance (a ~ a', FCoalgebra (TreeF a) t) => FCoalgebra (TreeF a') (TreeZip a t)
             (TreeZip b1 (alg $ LBranch a b2 p))
             (TreeZip b2 (alg $ RBranch a b1 p))
 
--- The next two functions could (should?) be replaced by a lens
-local :: (t -> t) -> TreeZip a t -> TreeZip a t
-local f (TreeZip t p) = TreeZip (f t) p
-
-here :: TreeZip a t -> t
-here (TreeZip t _) = t
+-- Lens for the current subtree
+_here :: Functor f => (t -> f t) -> TreeZip a t -> f (TreeZip a t)
+_here f (TreeZip t p) = fmap (flip TreeZip p) (f t)
 
 root :: t -> TreeZip a t
 root t = TreeZip t (alg Root)
