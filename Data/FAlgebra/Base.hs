@@ -28,6 +28,27 @@ newtype Fix f = Fix { unFix :: f (Fix f) }
 deriving instance Eq (f (Fix f)) => Eq (Fix f)
 deriving instance Show (f (Fix f)) => Show (Fix f)
 
+-- Catamorphism, "fold"
+cata :: (Functor f, FAlgebra f a) => Fix f -> a
+cata = alg . fmap cata . unFix
+
+-- Anamorphism, "unfold"
+ana :: (Functor f, FCoalgebra f a) => a -> Fix f
+ana = Fix . fmap ana . coalg
+
+-- Hylomorphism, "unfold, then fold"
+hylo :: forall proxy f a b. (Functor f, FCoalgebra f a, FAlgebra f b) => proxy f -> a -> b
+hylo _ = (cata :: Fix f -> b) . (ana :: a -> Fix f)
+
+{-
+TODO: Investigate the possibility of adding these very specific instances
+instance FAlgebra f (Fix f) where
+    alg = Fix
+
+instance FCoalgebra f (Fix f) where
+    coalg = unFix
+-}
+
 instance (Functor f, FAlgebra f a1, FAlgebra f a2) => FAlgebra f (a1, a2) where
     alg as = (alg (fmap fst as), alg (fmap snd as))
 
