@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE IncoherentInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -40,14 +41,12 @@ ana = Fix . fmap ana . coalg
 hylo :: forall proxy f a b. (Functor f, FCoalgebra f a, FAlgebra f b) => proxy f -> a -> b
 hylo _ = (cata :: Fix f -> b) . (ana :: a -> Fix f)
 
-{-
-TODO: Investigate the possibility of adding these very specific instances
+-- These use IncoherentInstances so that GHC doesn't complain when writing some general functions.
 instance FAlgebra f (Fix f) where
     alg = Fix
 
 instance FCoalgebra f (Fix f) where
     coalg = unFix
--}
 
 instance (Functor f, FAlgebra f a1, FAlgebra f a2) => FAlgebra f (a1, a2) where
     alg as = (alg (fmap fst as), alg (fmap snd as))

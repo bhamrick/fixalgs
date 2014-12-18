@@ -18,12 +18,6 @@ data HuttonF a = Int Int | Add a a
 
 type Hutton = Fix HuttonF
 
-instance FAlgebra HuttonF Hutton where
-    alg = Fix
-
-instance FCoalgebra HuttonF Hutton where
-    coalg = unFix
-
 instance FAlgebra HuttonF Int where
     alg (Int x) = x
     alg (Add x y) = x + y
@@ -70,12 +64,6 @@ type HoleHutton = Fix HoleHuttonF
 instance FAlgebra HuttonF HoleHutton where
     alg = algNat
 
-instance FAlgebra HoleHuttonF HoleHutton where
-    alg = Fix
-
-instance FCoalgebra HoleHuttonF HoleHutton where
-    coalg = unFix
-
 hole :: forall a. FAlgebra HoleHuttonF a => a
 hole = alg (Hole () :: HoleHuttonF a)
 
@@ -86,3 +74,13 @@ fillHole :: (() -> Hutton) -> HoleHutton -> Hutton
 fillHole f hh = case (coalg hh :: HoleHuttonF HoleHutton) of
     Hole a -> f a
     Full v -> alg (fmap (fillHole f) v)
+
+main :: IO ()
+main = do
+    print p2
+    print $ eval p2
+    print p3
+    print $ eval p3
+    print p4
+    print $ fillHole (const p2) p4
+    print . eval $ fillHole (const p2) p4

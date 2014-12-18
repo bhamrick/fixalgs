@@ -13,12 +13,6 @@ example = branch () (branch () (leaf ()) (branch () empty (leaf ()))) (branch ()
 type LabeledTreeF a = AnnF Int (TreeF a)
 type LabeledTree a = Fix (LabeledTreeF a)
 
-instance FAlgebra (LabeledTreeF a) (LabeledTree a) where
-    alg = Fix
-
-instance FCoalgebra (LabeledTreeF a) (LabeledTree a) where
-    coalg = unFix
-
 -- Want to define Tree a -> LabeledTree a where the label
 -- on each node is its index in an inorder traversal.
 -- Will work with State Int
@@ -39,3 +33,8 @@ labeller (Branch a b1 b2) = do
 
 labelTree :: Tree a -> LabeledTree a
 labelTree = flip evalState 1 . runTraverser sfix labeller
+
+main :: IO ()
+main = do
+    print example
+    print . labelTree $ example

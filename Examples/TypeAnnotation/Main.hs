@@ -21,12 +21,6 @@ data ASTF a = ALambda String a
 
 type AST = Fix ASTF
 
-instance FAlgebra ASTF AST where
-    alg = Fix
-
-instance FCoalgebra ASTF AST where
-    coalg = unFix
-
 deriving instance Show a => Show (ASTF a)
 deriving instance Functor ASTF
 deriving instance Foldable ASTF
