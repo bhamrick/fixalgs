@@ -1,12 +1,12 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 import Data.FAlgebra.Annotation
 import Data.FAlgebra.Base
 import Data.FAlgebra.Hole
-import Data.FAlgebra.Tree
 
 import Data.Proxy
 
@@ -43,6 +43,9 @@ p1 = add (int 5) (int 6)
 
 p2 :: Hutton
 p2 = p1
+
+newtype Size = Size Int
+    deriving (Eq, Show, Ord, Num)
 
 -- Annotate each expression with the number of summands
 instance FAlgebra HuttonF Size where

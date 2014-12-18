@@ -1,5 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -14,13 +16,16 @@ module Data.FAlgebra.Tree where
 import Prelude hiding (reverse)
 import Data.FAlgebra.Base
 import Data.FAlgebra.Annotation
+
+import Data.Foldable
 import Data.Proxy
+import Data.Traversable
 
 data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord)
 
-instance Functor (TreeF a) where
-    fmap _ Empty = Empty
-    fmap f (Branch a b1 b2) = Branch a (f b1) (f b2)
+deriving instance Functor (TreeF a)
+deriving instance Foldable (TreeF a)
+deriving instance Traversable (TreeF a)
 
 type Tree a = Fix (TreeF a)
 

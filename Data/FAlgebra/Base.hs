@@ -213,14 +213,28 @@ instance Conatural f f' => RestrictedConatural s f f' where
     rconat _ = conat
 
 -- Foldable and Traversable for fixed points
-data Folder a b = Folder { runFolder :: b -> a }
+newtype Folder a b = Folder { runFolder :: b -> a }
 
 instance (Functor f, FAlgebra f a) => Preserving (Folder a) f where
     trans (Folder fold) = Folder $ alg . fmap fold
 
--- data Traverser a b = Traverser { runTraverser :: forall f. Applicative f => b -> f a }
 -- Rank 1 version
-data Traverser a f b = Traverser { runTraverser :: b -> f a }
+-- f is the f-algebra
+-- g is the applicative context
+newtype Traverser f a g b = Traverser { runTraverser :: (f (g a) -> g a) -> b -> g a }
 
-instance (Traversable f, FAlgebra f a, Applicative g) => Preserving (Traverser a g) f where
-    trans (Traverser trav) = Traverser $ fmap alg . traverse trav
+-- TODO: Automate this for reals
+instance IsoRespecting (Traverser f a g) where
+    liftIso (Iso to from) = Iso travTo travFrom
+        where
+        travTo (Traverser trav) = Traverser (\combine -> trav combine . from)
+        travFrom (Traverser trav) = Traverser (\combine -> trav combine . to)
+
+instance (Traversable f, Applicative g) => Preserving (Traverser f a g) f where
+    -- fmap alg . sequenceA :: f (g a) -> g (f a) -> g a
+    trans (Traverser trav) = Traverser $ \combine -> combine . fmap (trav combine)
+
+-- Applicative g
+-- pure :: a -> g a
+-- ap :: g (a -> b) -> g a -> g b
+-- f (g a) -> g a
