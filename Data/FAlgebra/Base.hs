@@ -3,6 +3,7 @@
 {-# LANGUAGE IncoherentInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 -- TypeFamilies is only used for equality constraints
@@ -237,3 +238,39 @@ instance (Traversable f, Applicative g) => Preserving (Traverser f a g) f where
 -- pure :: a -> g a
 -- <*> :: g (a -> b) -> g a -> g b
 -- f (g a) -> g a
+
+-- TreeF (g a) (g b) -> g (TreeF a b)
+-- f' (g b) -> g (f b)
+-- Produces
+-- Fix f' -> g (Fix f)
+
+{-
+newtype Sequencer a g b = Sequencer { runSequencer :: b -> g a }
+
+instance IsoRespecting (Sequencer a g) where
+    liftIso (Iso to from) = Iso (Sequencer . (. from) . runSequencer) (Sequencer . (. to) . runSequencer)
+
+instance (Traversable f, Applicative g) => Preserving (Sequencer a g) f where
+    -- (b -> g a) -> (f b -> g a)
+    trans (Sequencer s) = undefined
+-}
+
+-- TODO: Consider making Fix an instance of PolyKinded Functor
+fmapFix :: Functor f => (forall x. f x -> f' x) -> Fix f -> Fix f'
+fmapFix n = Fix . n . fmap (fmapFix n) . unFix
+
+-- For example, when f' = TreeF (g a), f = TreeF a, this gives us Tree (g a) -> g (Tree a)
+-- TODO: Consider generalizing this
+sequenceFix :: forall f f' g. (Functor f, Functor g) => (forall x. f (g x) -> g (f' x)) -> Fix f -> g (Fix f')
+sequenceFix semisequence = fmap Fix . semisequence . fmap (sequenceFix semisequence) . unFix
+
+{-
+class SemiSequencing g f f' where
+    semisequence :: f (g a) -> g (f' a)
+
+instance (Traversable f, Applicative g) => SemiSequencing g f f where
+    semisequence = sequenceA
+
+sequenceFix :: forall f f' g a b. (Functor f, Functor g, FCoalgebra f a, FAlgebra f' b, SemiSequencing g f f') => a -> g b
+sequenceFix = fmap (alg :: f' b -> b) . semisequence . fmap sequenceFix . (coalg :: a -> f a)
+-}

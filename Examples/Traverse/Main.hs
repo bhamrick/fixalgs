@@ -1,14 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
 import Data.FAlgebra.Annotation
 import Data.FAlgebra.Base
 import Data.FAlgebra.Tree
 
-import Control.Applicative (Applicative)
+import Control.Applicative (Applicative, (<$>), (<*>), pure)
 import Control.Monad.State
 
 import Data.Foldable
@@ -38,6 +36,7 @@ getLabel = do
     modify (+1)
     return label
 
+-- TODO: Can this be written as a real traversal?
 -- Labels empty trees with 0 and the rest with incrementing indices
 labeller :: TreeF a (State Int (LabeledTree a)) -> State Int (LabeledTree a)
 labeller Empty = return . LabeledTree . Fix $ AnnF 0 Empty
@@ -50,15 +49,12 @@ labeller (Branch a b1 b2) = do
 labelTree :: Tree a -> LabeledTree a
 labelTree = flip evalState 1 . runTraverser sfix labeller
 
--- TODO: Can this be automated?
--- Maybe use fmapDefault from Data.Traversable?
+-- TODO: Can this be simplified further?
 instance Functor LabeledTree where
-    -- The explicit signature on coalg t requires ScopeTypeVariables and InstanceSigs.
-    -- Ugh.
-    fmap :: forall a b. (a -> b) -> LabeledTree a -> LabeledTree b
-    fmap f t = alg $ case (coalg t :: (LabeledTreeF a) (LabeledTree a)) of
-        AnnF i Empty -> AnnF i Empty
-        AnnF i (Branch a b1 b2) -> AnnF i (Branch (f a) (fmap f b1) (fmap f b2))
+    fmap f = LabeledTree . fmapFix n . runLabeledTree
+        where
+        n (AnnF i Empty) = AnnF i Empty
+        n (AnnF i (Branch a b1 b2)) = AnnF i (Branch (f a) b1 b2)
 
 -- TODO: Generalize Folder like Traverser
 instance Foldable LabeledTree where
@@ -68,10 +64,15 @@ instance Foldable LabeledTree where
 algCombine :: (FAlgebra f a, Traversable f, Applicative g) => f (g a) -> g a
 algCombine = fmap alg . sequenceA
 
--- TODO: Make this work properly
+-- TODO: Make lenses for annotation
 instance Traversable LabeledTree where
-    -- traverse :: Applicative g => (a -> g b) -> t a -> g (t b)
-    traverse = undefined -- runTraverser sfix algCombine
+    -- sequenceA :: Applicative g => LabeledTree (g a) -> g (LabeledTree a)
+    sequenceA = fmap LabeledTree . sequenceFix semisequence . runLabeledTree
+        where
+        semisequence :: Applicative g => LabeledTreeF (g a) (g b) -> g (LabeledTreeF a b)
+        semisequence (AnnF i Empty) = pure (AnnF i Empty)
+        semisequence (AnnF i (Branch a b1 b2)) = (\x y z ->
+            AnnF i (Branch y x z)) <$> b1 <*> a <*> b2
 
 main :: IO ()
 main = do
