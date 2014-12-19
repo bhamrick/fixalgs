@@ -235,5 +235,5 @@ instance (Traversable f, Applicative g) => Preserving (Traverser f a g) f where
 
 -- Applicative g
 -- pure :: a -> g a
--- ap :: g (a -> b) -> g a -> g b
+-- <*> :: g (a -> b) -> g a -> g b
 -- f (g a) -> g a
