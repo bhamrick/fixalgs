@@ -8,6 +8,7 @@
 module Data.FAlgebra.Annotation where
 
 import Data.FAlgebra.Base
+import Data.Functor
 
 -- Isomorphic to CofreeF
 data AnnF a f r = AnnF !a (f r)
@@ -18,6 +19,13 @@ instance Functor f => Functor (AnnF a f) where
 
 annFst ~(AnnF a _) = a
 annSnd ~(AnnF _ as) = as
+
+-- Lenses
+_ann :: Functor f => (a -> f b) -> AnnF a g r -> f (AnnF b g r)
+_ann f ~(AnnF a rs) = flip AnnF rs <$> f a
+
+_dat :: Functor f => (g r -> f (g' s)) -> AnnF a g r -> f (AnnF a g' s)
+_dat f ~(AnnF a rs) = AnnF a <$> f rs
 
 -- This works, but generally not what you want to do because it recomputes annotations for the previous level
 instance (Functor f, Functor f', FAlgebra f a, Preserving (FAlgebraM f) f') => Preserving (FAlgebraM f) (AnnF a f') where
