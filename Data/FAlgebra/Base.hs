@@ -14,8 +14,6 @@
 module Data.FAlgebra.Base where
 
 import Control.Applicative
-import Data.Foldable
-import Data.Traversable
 
 -- Instances can supply either a wrapped or unwrapped version
 -- No fundeps because types can disambiguate instances, and fundeps
@@ -212,65 +210,15 @@ instance Natural f f' => RestrictedNatural s f f' where
 instance Conatural f f' => RestrictedConatural s f f' where
     rconat _ = conat
 
--- Foldable and Traversable for fixed points
-newtype Folder a b = Folder { runFolder :: b -> a }
-
-instance (Functor f, FAlgebra f a) => Preserving (Folder a) f where
-    trans (Folder fold) = Folder $ alg . fmap fold
-
--- Rank 1 version
--- f is the f-algebra
--- g is the applicative context
-newtype Traverser f a g b = Traverser { runTraverser :: (f (g a) -> g a) -> b -> g a }
-
--- TODO: Automate this for reals
-instance IsoRespecting (Traverser f a g) where
-    liftIso (Iso to from) = Iso travTo travFrom
-        where
-        travTo (Traverser trav) = Traverser (\combine -> trav combine . from)
-        travFrom (Traverser trav) = Traverser (\combine -> trav combine . to)
-
-instance (Traversable f, Applicative g) => Preserving (Traverser f a g) f where
-    -- fmap alg . sequenceA :: f (g a) -> g (f a) -> g a
-    trans (Traverser trav) = Traverser $ \combine -> combine . fmap (trav combine)
-
--- Applicative g
--- pure :: a -> g a
--- <*> :: g (a -> b) -> g a -> g b
--- f (g a) -> g a
-
--- TreeF (g a) (g b) -> g (TreeF a b)
--- f' (g b) -> g (f b)
--- Produces
--- Fix f' -> g (Fix f)
-
-{-
-newtype Sequencer a g b = Sequencer { runSequencer :: b -> g a }
-
-instance IsoRespecting (Sequencer a g) where
-    liftIso (Iso to from) = Iso (Sequencer . (. from) . runSequencer) (Sequencer . (. to) . runSequencer)
-
-instance (Traversable f, Applicative g) => Preserving (Sequencer a g) f where
-    -- (b -> g a) -> (f b -> g a)
-    trans (Sequencer s) = undefined
--}
+-- These two functions can be used to define Foldable and Traversable instances
 
 -- TODO: Consider making Fix an instance of PolyKinded Functor
+-- Fix is a functor from Functors in (* -> *) to *
 fmapFix :: Functor f => (forall x. f x -> f' x) -> Fix f -> Fix f'
 fmapFix n = Fix . n . fmap (fmapFix n) . unFix
 
 -- For example, when f' = TreeF (g a), f = TreeF a, this gives us Tree (g a) -> g (Tree a)
--- TODO: Consider generalizing this
+-- Note that when g = Identity this reduces to fmapFix.
+-- TODO: Consider generalizing this if it's reasonable.
 sequenceFix :: forall f f' g. (Functor f, Functor g) => (forall x. f (g x) -> g (f' x)) -> Fix f -> g (Fix f')
 sequenceFix semisequence = fmap Fix . semisequence . fmap (sequenceFix semisequence) . unFix
-
-{-
-class SemiSequencing g f f' where
-    semisequence :: f (g a) -> g (f' a)
-
-instance (Traversable f, Applicative g) => SemiSequencing g f f where
-    semisequence = sequenceA
-
-sequenceFix :: forall f f' g a b. (Functor f, Functor g, FCoalgebra f a, FAlgebra f' b, SemiSequencing g f f') => a -> g b
-sequenceFix = fmap (alg :: f' b -> b) . semisequence . fmap sequenceFix . (coalg :: a -> f a)
--}

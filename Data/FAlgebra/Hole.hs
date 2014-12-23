@@ -30,7 +30,7 @@ instance (Functor f, Conatural f f') => RestrictedConatural (HoleM a f) f (HoleF
     rconat (HoleM fillHole) (Full bs) = conat bs
 
 instance (Functor f, RestrictedConatural s f f') => RestrictedConatural (s :*: HoleM a f) f (HoleF a f') where
-    rconat (s :*: (HoleM fillHole)) (Hole a) = fillHole a
+    rconat (s :*: HoleM fillHole) (Hole a) = fillHole a
     rconat (s :*: _) (Full bs) = rconat s bs
 
 -- Does this instance make sense?

@@ -80,8 +80,8 @@ directions (TreeZip _ p) = directions' p
     where
     directions' p = case (coalg p :: TreeZipStepF a t (TreeZipSteps a t)) of
         Root -> []
-        LBranch _ _ p' -> L:(directions' p')
-        RBranch _ _ p' -> R:(directions' p')
+        LBranch _ _ p' -> L : directions' p'
+        RBranch _ _ p' -> R : directions' p'
 
 rotate :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t) => TreeZip a t -> TreeZip a t
 rotate z@(TreeZip t p) = case coalg p of

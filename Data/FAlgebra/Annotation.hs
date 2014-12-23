@@ -55,7 +55,7 @@ instance (Functor f, Natural f f', FAlgebra f a) => RestrictedNatural (AnnM a) f
     rnat (AnnM getAnn) bs = AnnF (alg (fmap getAnn bs)) . nat $ bs
 
 instance (Functor f, RestrictedNatural s f f', FAlgebra f a) => RestrictedNatural (s :*: AnnM a) f (AnnF a f') where
-    rnat (s :*: (AnnM getAnn)) bs = AnnF (alg (fmap getAnn bs)) . rnat s $ bs
+    rnat (s :*: AnnM getAnn) bs = AnnF (alg (fmap getAnn bs)) . rnat s $ bs
 
 instance RestrictedConatural s f f' => RestrictedConatural s f (AnnF a f') where
     rconat s = rconat s . annSnd
