@@ -36,19 +36,6 @@ getLabel = do
     modify (+1)
     return label
 
--- TODO: Can this be written as a real traversal?
--- Labels empty trees with 0 and the rest with incrementing indices
-labeller :: TreeF a (State Int (LabeledTree a)) -> State Int (LabeledTree a)
-labeller Empty = return . LabeledTree . Fix $ AnnF 0 Empty
-labeller (Branch a b1 b2) = do
-    t1 <- b1
-    label <- getLabel
-    t2 <- b2
-    return . alg $ AnnF label (Branch a t1 t2)
-
-labelTree :: Tree a -> LabeledTree a
-labelTree = flip evalState 1 . runTraverser sfix labeller
-
 -- TODO: Can this be simplified further?
 instance Functor LabeledTree where
     fmap f = LabeledTree . fmapFix n . runLabeledTree
@@ -56,10 +43,9 @@ instance Functor LabeledTree where
         n (AnnF i Empty) = AnnF i Empty
         n (AnnF i (Branch a b1 b2)) = AnnF i (Branch (f a) b1 b2)
 
--- TODO: Generalize Folder like Traverser
 instance Foldable LabeledTree where
     -- foldMap :: Monoid m => (a -> m) -> t a -> m
-    foldMap = undefined
+    foldMap = foldMapDefault
 
 algCombine :: (FAlgebra f a, Traversable f, Applicative g) => f (g a) -> g a
 algCombine = fmap alg . sequenceA
@@ -72,6 +58,32 @@ instance Traversable LabeledTree where
         semisequence (AnnF i Empty) = pure (AnnF i Empty)
         semisequence (AnnF i (Branch a b1 b2)) = (\x y z ->
             AnnF i (Branch y x z)) <$> b1 <*> a <*> b2
+
+instance Traversable Tree where
+    sequenceA = fmap Tree . sequenceFix inorder . runTree
+        where
+        inorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
+        inorder Empty = pure Empty
+        inorder (Branch a b1 b2) = (\x y z -> Branch y x z) <$> b1 <*> a <*> b2
+
+instance Foldable Tree where
+    foldMap = foldMapDefault
+
+labelStep :: a -> State Int (Int, a)
+labelStep a = (,) <$> getLabel <*> pure a
+
+-- TODO: Determine if there's a better type signature/implementation that
+-- generalizes better
+-- TODO: Better name?
+annotate :: x -> TreeF (x, a) b -> AnnF x (TreeF a) b
+annotate def Empty = AnnF def Empty
+annotate _ (Branch (x, a) b1 b2) = AnnF x (Branch a b1 b2)
+
+-- Label empty trees with 0 and others with their index in an inorder traversal
+-- Follows the type path
+-- Tree a -> State Int (Tree (Int, a)) -> Tree (Int, a) -> State Int (LabeledTree a)
+labelTree :: Tree a -> LabeledTree a
+labelTree = LabeledTree . fmapFix (annotate 0) . runTree . flip evalState 1 . traverse labelStep
 
 main :: IO ()
 main = do

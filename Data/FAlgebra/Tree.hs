@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -21,13 +22,35 @@ import Data.Foldable
 import Data.Proxy
 import Data.Traversable
 
+import Control.Applicative
+
+import Lens.Micro
+
 data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord)
 
 deriving instance Functor (TreeF a)
 deriving instance Foldable (TreeF a)
 deriving instance Traversable (TreeF a)
 
+-- "Lenses" for TreeF
+-- Only works for Applicatives due to the need of pure
+_node :: Applicative f => LensLike f (TreeF a b) (TreeF a' b) a a'
+_node _ Empty = pure Empty
+_node f (Branch a b1 b2) = fmap (\a' -> Branch a' b1 b2) (f a)
+
+-- _left and _right can't change the types because the left and right subtrees
+-- have to stay the same type
+_left :: Applicative f => LensLike' f (TreeF a b) b
+_left _ Empty = pure Empty
+_left f (Branch a b1 b2) = fmap (\b1' -> Branch a b1' b2) (f b1)
+
+_right :: Applicative f => LensLike' f (TreeF a b) b
+_right _ Empty = pure Empty
+_right f (Branch a b1 b2) = fmap (\b2' -> Branch a b1 b2') (f b2)
+
 newtype Tree a = Tree { runTree :: Fix (TreeF a) }
+
+deriving instance Show (Fix (TreeF a)) => Show (Tree a)
 
 -- TODO: Reduce boilerplate for newtypes
 instance (Functor f, FAlgebra f (Fix (TreeF a))) => FAlgebra f (Tree a) where
@@ -35,6 +58,16 @@ instance (Functor f, FAlgebra f (Fix (TreeF a))) => FAlgebra f (Tree a) where
 
 instance (Functor f, FCoalgebra f (Fix (TreeF a))) => FCoalgebra f (Tree a) where
     coalg = fmap Tree . coalg . runTree
+
+-- To aid inference (especially in the use of empty)
+instance a ~ a' => FAlgebra (TreeF a') (Tree a) where
+    alg = Tree . alg . fmap runTree
+
+instance a ~ a' => FCoalgebra (TreeF a') (Tree a) where
+    coalg = fmap Tree . coalg . runTree
+
+instance Functor Tree where
+    fmap f = Tree . fmapFix (over _node f) . runTree
 
 branch :: FAlgebra (TreeF a) t => a -> t -> t -> t
 branch a b1 b2 = alg $ Branch a b1 b2

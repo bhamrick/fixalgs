@@ -24,6 +24,7 @@ library
                      , Data.FAlgebra.Tree.Zipper
   -- other-modules:       
   build-depends:       base >=4.7 && <5.0
+                     , microlens >=0.1
 
 executable range_reverse
   hs-source-dirs:      Examples/RangeReverse

@@ -10,6 +10,8 @@ module Data.FAlgebra.Annotation where
 import Data.FAlgebra.Base
 import Data.Functor
 
+import Lens.Micro
+
 -- Isomorphic to CofreeF
 data AnnF a f r = AnnF !a (f r)
     deriving (Eq, Show)
@@ -21,10 +23,10 @@ annFst ~(AnnF a _) = a
 annSnd ~(AnnF _ as) = as
 
 -- Lenses
-_ann :: Functor f => (a -> f b) -> AnnF a g r -> f (AnnF b g r)
+_ann :: Functor f => LensLike f (AnnF a g r) (AnnF b g r) a b
 _ann f ~(AnnF a rs) = flip AnnF rs <$> f a
 
-_dat :: Functor f => (g r -> f (g' s)) -> AnnF a g r -> f (AnnF a g' s)
+_dat :: Functor f => LensLike f (AnnF a g r) (AnnF a g' s) (g r) (g' s)
 _dat f ~(AnnF a rs) = AnnF a <$> f rs
 
 -- This works, but generally not what you want to do because it recomputes annotations for the previous level
