@@ -27,7 +27,14 @@ deriving instance Functor (TreeF a)
 deriving instance Foldable (TreeF a)
 deriving instance Traversable (TreeF a)
 
-type Tree a = Fix (TreeF a)
+newtype Tree a = Tree { runTree :: Fix (TreeF a) }
+
+-- TODO: Reduce boilerplate for newtypes
+instance (Functor f, FAlgebra f (Fix (TreeF a))) => FAlgebra f (Tree a) where
+    alg = Tree . alg . fmap runTree
+
+instance (Functor f, FCoalgebra f (Fix (TreeF a))) => FCoalgebra f (Tree a) where
+    coalg = fmap Tree . coalg . runTree
 
 branch :: FAlgebra (TreeF a) t => a -> t -> t -> t
 branch a b1 b2 = alg $ Branch a b1 b2
@@ -81,12 +88,6 @@ getSum = getAnnotation
 -- These instances that are maximally general on f serve as a sort of
 -- alternative to functional dependencies, so you can, for example,
 -- write coalg t without explicit type signatures.
-instance (f ~ TreeF a) => FAlgebra f (Tree a) where
-    alg = algNat
-
-instance (f ~ TreeF a) => FCoalgebra f (Tree a) where
-    coalg = coalgNat
-
 instance (f ~ TreeF a) => FAlgebra f (SizeTree a) where
     alg = algRNat (Proxy :: Proxy (AnnM Size))
 

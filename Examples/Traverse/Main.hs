@@ -64,7 +64,6 @@ instance Foldable LabeledTree where
 algCombine :: (FAlgebra f a, Traversable f, Applicative g) => f (g a) -> g a
 algCombine = fmap alg . sequenceA
 
--- TODO: Make lenses for annotation
 instance Traversable LabeledTree where
     -- sequenceA :: Applicative g => LabeledTree (g a) -> g (LabeledTree a)
     sequenceA = fmap LabeledTree . sequenceFix semisequence . runLabeledTree
