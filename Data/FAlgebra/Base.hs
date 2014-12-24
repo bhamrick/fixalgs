@@ -212,13 +212,19 @@ instance Conatural f f' => RestrictedConatural s f f' where
 
 -- These two functions can be used to define Foldable and Traversable instances
 
--- TODO: Consider making Fix an instance of PolyKinded Functor
 -- Fix is a functor from Functors in (* -> *) to *
-fmapFix :: Functor f => (forall x. f x -> f' x) -> Fix f -> Fix f'
+-- The first argument of fmapFix should be a natural transformation,
+-- but we only need to apply it on Fix f'.
+-- We could also define fmapFix only applying it to Fix f.
+fmapFix :: Functor f => (f (Fix f') -> f' (Fix f')) -> Fix f -> Fix f'
 fmapFix n = Fix . n . fmap (fmapFix n) . unFix
 
 -- For example, when f' = TreeF (g a), f = TreeF a, this gives us Tree (g a) -> g (Tree a)
 -- Note that when g = Identity this reduces to fmapFix.
 -- TODO: Consider generalizing this if it's reasonable.
-sequenceFix :: forall f f' g. (Functor f, Functor g) => (forall x. f (g x) -> g (f' x)) -> Fix f -> g (Fix f')
+
+-- Similarly here, the first argument is generally going to be of the form
+-- forall x. f (g x) -> g (f' x)
+-- but we only need to apply it with x = Fix f'
+sequenceFix :: (Functor f, Functor g) => (f (g (Fix f')) -> g (f' (Fix f'))) -> Fix f -> g (Fix f')
 sequenceFix semisequence = fmap Fix . semisequence . fmap (sequenceFix semisequence) . unFix

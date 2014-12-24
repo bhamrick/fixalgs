@@ -43,10 +43,6 @@ instance Functor LabeledTree where
         n (AnnF i Empty) = AnnF i Empty
         n (AnnF i (Branch a b1 b2)) = AnnF i (Branch (f a) b1 b2)
 
-instance Foldable LabeledTree where
-    -- foldMap :: Monoid m => (a -> m) -> t a -> m
-    foldMap = foldMapDefault
-
 algCombine :: (FAlgebra f a, Traversable f, Applicative g) => f (g a) -> g a
 algCombine = fmap alg . sequenceA
 
@@ -58,6 +54,9 @@ instance Traversable LabeledTree where
         semisequence (AnnF i Empty) = pure (AnnF i Empty)
         semisequence (AnnF i (Branch a b1 b2)) = (\x y z ->
             AnnF i (Branch y x z)) <$> b1 <*> a <*> b2
+
+instance Foldable LabeledTree where
+    foldMap = foldMapDefault
 
 instance Traversable Tree where
     sequenceA = fmap Tree . sequenceFix inorder . runTree
@@ -74,16 +73,28 @@ labelStep a = (,) <$> getLabel <*> pure a
 
 -- TODO: Determine if there's a better type signature/implementation that
 -- generalizes better
--- TODO: Better name?
-annotate :: x -> TreeF (x, a) b -> AnnF x (TreeF a) b
-annotate def Empty = AnnF def Empty
-annotate _ (Branch (x, a) b1 b2) = AnnF x (Branch a b1 b2)
+annotateFromPair :: x -> TreeF (x, a) b -> AnnF x (TreeF a) b
+annotateFromPair def Empty = AnnF def Empty
+annotateFromPair _ (Branch (x, a) b1 b2) = AnnF x (Branch a b1 b2)
 
 -- Label empty trees with 0 and others with their index in an inorder traversal
 -- Follows the type path
 -- Tree a -> State Int (Tree (Int, a)) -> Tree (Int, a) -> State Int (LabeledTree a)
 labelTree :: Tree a -> LabeledTree a
-labelTree = LabeledTree . fmapFix (annotate 0) . runTree . flip evalState 1 . traverse labelStep
+labelTree = LabeledTree . fmapFix (annotateFromPair 0) . runTree . flip evalState 1 . traverse labelStep
+
+-- I should be able to write
+-- Something like
+-- Applicative g => (forall b. f b -> g a) -> Fix f -> g (Fix (AnnF a f))
+-- But I need traversal order also, and f should be able to change to a different functor.
+-- Certainly I can write
+-- (Applicative g, Traversable f) => (forall b. f b -> g a) -> Fix f -> g (Fix (AnnF a f))
+-- But this doesn't traverse over internal data (which requires transforming TreeF (g a) to TreeF a)
+-- I also need the semisequence :: forall b. f (g b) -> g (f' b)
+
+labelStep' :: TreeF a b -> State Int Int
+labelStep' Empty = return 0
+labelStep' (Branch _ _ _) = getLabel
 
 main :: IO ()
 main = do

@@ -48,6 +48,19 @@ _right :: Applicative f => LensLike' f (TreeF a b) b
 _right _ Empty = pure Empty
 _right f (Branch a b1 b2) = fmap (\b2' -> Branch a b1 b2') (f b2)
 
+-- Basic traversal orders
+preorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
+preorder Empty = pure Empty
+preorder (Branch a b1 b2) = Branch <$> a <*> b1 <*> b2
+
+inorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
+inorder Empty = pure Empty
+inorder (Branch a b1 b2) = (\x y z -> Branch y x z) <$> b1 <*> a <*> b2
+
+postorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
+postorder Empty = pure Empty
+postorder (Branch a b1 b2) = (\x y z -> Branch z x y) <$> b1 <*> b2 <*> a
+
 newtype Tree a = Tree { runTree :: Fix (TreeF a) }
 
 deriving instance Show (Fix (TreeF a)) => Show (Tree a)

@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Data.FAlgebra.Annotation where
 
@@ -64,3 +65,18 @@ instance RestrictedConatural s f f' => RestrictedConatural s f (AnnF a f') where
 
 instance Conatural f f' => Conatural f (AnnF a f') where
     conat = conat . annSnd
+
+-- Annotating an existing fixed point structure
+-- First, purely
+annotate :: Functor f => (f a -> a) -> Fix f -> Fix (AnnF a f)
+annotate = fmapFix . annotateStep
+
+annotateStep :: (Functor f, Structured (AnnM a) b) => (f a -> a) -> f b -> AnnF a f b
+annotateStep combine bs = AnnF (combine (fmap getAnnotation bs)) bs
+
+-- Now allow sequencing the annotations
+sequenceAnn :: (Functor f, Functor g) => (forall x. AnnF (g a) f (g x) -> g (AnnF a f x)) -> Fix (AnnF (g a) f) -> g (Fix (AnnF a f))
+sequenceAnn semisequence = sequenceFix semisequence
+
+-- So what is the essential information we need to make
+-- AnnF (g a) f (g x) -> g (AnnF a f x)
