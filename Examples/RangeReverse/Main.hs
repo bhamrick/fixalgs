@@ -54,8 +54,7 @@ data TestCase = TestCase
 runTestCase :: (Int -> a) -> (Int -> Int -> a -> a) -> TestCase -> a
 runTestCase init revRange (TestCase { size = s, reversals = revs }) = go (init s) revs
     where
-    go acc [] = acc
-    go acc (r:rs) = go (uncurry revRange r acc) rs
+    go = foldl (flip (uncurry revRange))
 
 listRunTestCase = runTestCase (\n -> [0..(n-1)]) listReverseRange
 treeRunTestCase = runTestCase (\n -> treeFromList [0..(n-1)]) treeReverseRange
@@ -81,7 +80,7 @@ randomIntervalIO size = do
 randomTestCase :: Int -> Int -> IO TestCase
 randomTestCase size nrevs = do
     revs <- replicateM nrevs (randomIntervalIO size)
-    return $ TestCase
+    return TestCase
         { size = size
         , reversals = revs
         }
