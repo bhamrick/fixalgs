@@ -116,7 +116,6 @@ generateConstraintStep (AApply (a_type, a_type_res) (b_type, b_type_res)) = do
         assumptions = mempty
         })
 
--- This is a semisequence
 generateConstraintSemisequence :: (Structured (AnnM (Type, TypeResult)) b, MonadState VarIdSource m) => ASTF (m b) -> m (AnnF (Type, TypeResult) ASTF b)
 generateConstraintSemisequence ast = do
     ast' <- sequence ast
