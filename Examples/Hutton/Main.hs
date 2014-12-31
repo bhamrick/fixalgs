@@ -31,7 +31,6 @@ int x = alg (Int x)
 add :: FAlgebra HuttonF a => a -> a -> a
 add x y = alg (Add x y)
 
--- TODO: Investigate why GHC can't infer this type
 p1 :: FAlgebra HuttonF a => a
 p1 = add (int 5) (int 6)
 

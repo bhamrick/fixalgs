@@ -71,8 +71,6 @@ instance Foldable Tree where
 labelStep :: a -> State Int (Int, a)
 labelStep a = (,) <$> getLabel <*> pure a
 
--- TODO: Determine if there's a better type signature/implementation that
--- generalizes better
 annotateFromPair :: x -> TreeF (x, a) b -> AnnF x (TreeF a) b
 annotateFromPair def Empty = AnnF def Empty
 annotateFromPair _ (Branch (x, a) b1 b2) = AnnF x (Branch a b1 b2)

@@ -226,5 +226,6 @@ fmapFix n = Fix . n . fmap (fmapFix n) . unFix
 -- Similarly here, the first argument is generally going to be of the form
 -- forall x. f (g x) -> g (f' x)
 -- but we only need to apply it with x = Fix f'
+-- We don't require the full polymorphism because sometimes it needs an additional constraint on x.
 sequenceFix :: (Functor f, Functor g) => (f (g (Fix f')) -> g (f' (Fix f'))) -> Fix f -> g (Fix f')
 sequenceFix semisequence = fmap Fix . semisequence . fmap (sequenceFix semisequence) . unFix
