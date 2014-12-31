@@ -116,17 +116,10 @@ generateConstraintStep (AApply (a_type, a_type_res) (b_type, b_type_res)) = do
         assumptions = mempty
         })
 
-generateConstraintSemisequence :: (Structured (AnnM (Type, TypeResult)) b, MonadState VarIdSource m) => ASTF (m b) -> m (AnnF (Type, TypeResult) ASTF b)
-generateConstraintSemisequence ast = do
-    ast' <- sequence ast
-    let annotations = fmap getAnnotation ast'
-    topAnnotation <- generateConstraintStep annotations
-    return (AnnF topAnnotation ast')
-
 type ConstraintAST = Fix (AnnF (Type, TypeResult) ASTF)
 
 generateConstraints :: AST -> ConstraintAST
-generateConstraints = flip evalState (VarIdSource 0) . sequenceFix generateConstraintSemisequence
+generateConstraints = flip evalState (VarIdSource 0) . annotateM generateConstraintStep
 
 solveConstraints :: [Constraint] -> Maybe (Map Int Type)
 solveConstraints =

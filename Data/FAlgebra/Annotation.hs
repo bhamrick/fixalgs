@@ -8,8 +8,11 @@
 
 module Data.FAlgebra.Annotation where
 
+import Prelude hiding (sequence)
+
 import Data.FAlgebra.Base
 import Data.Functor
+import Data.Traversable
 
 import Lens.Micro
 
@@ -70,13 +73,17 @@ instance Conatural f f' => Conatural f (AnnF a f') where
 -- First, purely
 annotate :: Functor f => (f a -> a) -> Fix f -> Fix (AnnF a f)
 annotate = fmapFix . annotateStep
+    where
+    -- annotateStep :: (Functor f, Structured (AnnM a) b) => (f a -> a) -> f b -> AnnF a f b
+    annotateStep combine bs = AnnF (combine (fmap getAnnotation bs)) bs
 
-annotateStep :: (Functor f, Structured (AnnM a) b) => (f a -> a) -> f b -> AnnF a f b
-annotateStep combine bs = AnnF (combine (fmap getAnnotation bs)) bs
-
--- Now allow sequencing the annotations
-sequenceAnn :: (Functor f, Functor g) => (forall x. AnnF (g a) f (g x) -> g (AnnF a f x)) -> Fix (AnnF (g a) f) -> g (Fix (AnnF a f))
-sequenceAnn semisequence = sequenceFix semisequence
-
--- So what is the essential information we need to make
--- AnnF (g a) f (g x) -> g (AnnF a f x)
+-- Annotations inside of a monadic context
+annotateM :: (Traversable f, Functor m, Monad m) => (f a -> m a) -> Fix f -> m (Fix (AnnF a f))
+annotateM buildAnnStep = sequenceFix semisequence
+    where
+    -- semisequence :: Structured (AnnM a) b => f (m b) -> m (AnnF a f b)
+    semisequence bs = do
+        bs' <- sequence bs
+        let as = fmap getAnnotation bs'
+        ann <- buildAnnStep as
+        return $ AnnF ann bs'

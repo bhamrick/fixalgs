@@ -46,7 +46,7 @@ _left f (Branch a b1 b2) = fmap (\b1' -> Branch a b1' b2) (f b1)
 
 _right :: Applicative f => LensLike' f (TreeF a b) b
 _right _ Empty = pure Empty
-_right f (Branch a b1 b2) = fmap (\b2' -> Branch a b1 b2') (f b2)
+_right f (Branch a b1 b2) = fmap (Branch a b1) (f b2)
 
 -- Basic traversal orders
 preorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
