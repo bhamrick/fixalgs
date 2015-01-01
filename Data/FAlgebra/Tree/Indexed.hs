@@ -13,7 +13,7 @@ import Data.FAlgebra.Tree.Zipper
 
 import Lens.Micro
 
-idx :: forall a t. (FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> t -> TreeZip a t
+idx :: forall a t. (FCoalgebra (TreeF a) t, Annotated Size t) => Int -> t -> TreeZip a t
 idx i = idx' (Size i) . root
     where
     idx' i z = case (coalg z :: TreeF a (TreeZip a t)) of
@@ -26,7 +26,7 @@ idx i = idx' (Size i) . root
 
 -- Returns the slot such that if you insert there then the
 -- inserted element will be the specified index
-idxSlot :: forall a t. (FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> t -> TreeZip a t
+idxSlot :: forall a t. (FCoalgebra (TreeF a) t, Annotated Size t) => Int -> t -> TreeZip a t
 idxSlot i = idxSlot' (Size i) . root
     where
     idxSlot' i z = case (coalg z :: TreeF a (TreeZip a t)) of

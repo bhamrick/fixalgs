@@ -34,7 +34,7 @@ splay z = if isRoot z
 
 -- We can isolate an interval with splays and potentially a rotation
 -- Isolate the interval [l, r)
-isolateInterval :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> Int -> t -> TreeZip a t
+isolateInterval :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Annotated Size t) => Int -> Int -> t -> TreeZip a t
 isolateInterval l r t = if l >= r
     then idxSlot l t
     else let s = getSize t in
@@ -61,5 +61,5 @@ isolateInterval l r t = if l >= r
 
 -- Inserts the specified element so that it is at the specified index
 -- i.e. Inserting at index 0 moves every element one index up.
-insertAt :: (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Structured (AnnM Size) t) => Int -> a -> t -> t
+insertAt :: (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Annotated Size t) => Int -> a -> t -> t
 insertAt i x = zip . splay . insertHere x . idxSlot i

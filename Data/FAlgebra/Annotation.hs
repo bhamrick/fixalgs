@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -39,9 +40,11 @@ instance (Functor f, Functor f', FAlgebra f a, Preserving (FAlgebraM f) f') => P
         AnnF (alg $ fmap annFst anns) (runFAlgebraM (trans alg0) $ fmap annSnd anns)
 
 -- Annotation extracting structure
-newtype AnnM a c = AnnM { runAnnM :: c -> a }
+newtype AnnM a b = AnnM { runAnnM :: b -> a }
 
-getAnnotation :: Structured (AnnM a) t => t -> a
+type Annotated a b = Structured (AnnM a) b
+
+getAnnotation :: Annotated a t => t -> a
 getAnnotation = runAnnM struct 
 
 instance IsoRespecting (AnnM a) where

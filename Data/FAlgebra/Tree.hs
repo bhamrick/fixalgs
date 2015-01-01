@@ -113,7 +113,7 @@ type SizeTreeF a = AnnF Size (TreeF a)
 
 type SizeTree a = Fix (SizeTreeF a)
 
-getSize :: Structured (AnnM Size) a => a -> Size
+getSize :: Annotated Size a => a -> Size
 getSize = getAnnotation
 
 newtype Sum a = Sum a deriving (Eq, Show, Ord, Num)
@@ -128,7 +128,7 @@ type SumTree a = Fix (SumTreeF a)
 type SumAndSizeTreeF a = AnnF Size (AnnF (Sum a) (TreeF a))
 type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
 
-getSum :: Structured (AnnM (Sum a)) t => t -> Sum a
+getSum :: Annotated (Sum a) t => t -> Sum a
 getSum = getAnnotation
 
 -- These instances that are maximally general on f serve as a sort of
