@@ -10,6 +10,8 @@ import Data.FAlgebra.Tree
 import Data.FAlgebra.Tree.Indexed
 import Data.FAlgebra.Tree.Zipper
 
+-- |Do one step of splaying the current node to the root. The resulting zipper is
+--  focused on the same node at its new location.
 splayStep :: (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t) => TreeZip a t -> TreeZip a t
 splayStep z = case directions z of
     [] -> z
@@ -20,6 +22,7 @@ splayStep z = case directions z of
     (R:L:_) -> rotate . rotate $ z
     (R:R:_) -> rotate . right . rotate . up $ z
 
+-- |Splay a node all the way to the root. The resulting zipper is focused on the new root.
 splay :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t) => TreeZip a t -> TreeZip a t
 splay z = if isRoot z
     then z
@@ -32,8 +35,7 @@ splay z = if isRoot z
 -- TODO: Decide how to split indexed splays from BST splays
 -- Data.FAlgebra.Tree.Splay.(Indexed|BST)?
 
--- We can isolate an interval with splays and potentially a rotation
--- Isolate the interval [l, r)
+-- |Isolate the interval [l, r) in a rooted subtree and return a zipper for that subtree
 isolateInterval :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Annotated Size t) => Int -> Int -> t -> TreeZip a t
 isolateInterval l r t = if l >= r
     then idxSlot l t
@@ -59,7 +61,7 @@ isolateInterval l r t = if l >= r
             Empty -> right . rotate $ z
             _     -> right z
 
--- Inserts the specified element so that it is at the specified index
--- i.e. Inserting at index 0 moves every element one index up.
+-- |Insert the specified element so that it is at the specified index
+--  i.e. Inserting at index 0 moves every element one index up.
 insertAt :: (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Annotated Size t) => Int -> a -> t -> t
 insertAt i x = zip . splay . insertHere x . idxSlot i

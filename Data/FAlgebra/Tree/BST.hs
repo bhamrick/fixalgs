@@ -6,8 +6,8 @@ import Data.FAlgebra.Base
 import Data.FAlgebra.Tree
 import Data.FAlgebra.Tree.Zipper
 
--- For a binary search tree, return either the zipper of
--- the requested element or the slot it would go if inserted.
+-- |For a binary search tree, return either the zipper of
+--  the requested element or the slot it would go if inserted.
 find :: forall a t. (Ord a, FCoalgebra (TreeF a) t) => a -> t -> TreeZip a t
 find x = find' x . root
     where

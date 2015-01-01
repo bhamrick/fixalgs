@@ -13,6 +13,7 @@ import Data.FAlgebra.Tree.Zipper
 
 import Lens.Micro
 
+-- |Get a zipper for the ith element of a tree.
 idx :: forall a t. (FCoalgebra (TreeF a) t, Annotated Size t) => Int -> t -> TreeZip a t
 idx i = idx' (Size i) . root
     where
@@ -24,8 +25,7 @@ idx i = idx' (Size i) . root
                 EQ -> z
                 GT -> idx' (i - s - 1) b2
 
--- Returns the slot such that if you insert there then the
--- inserted element will be the specified index
+-- |Get a zipper the slot such that inserting there makes the inserted element the ith element.
 idxSlot :: forall a t. (FCoalgebra (TreeF a) t, Annotated Size t) => Int -> t -> TreeZip a t
 idxSlot i = idxSlot' (Size i) . root
     where

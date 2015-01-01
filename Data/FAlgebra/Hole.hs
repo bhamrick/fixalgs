@@ -7,7 +7,7 @@ module Data.FAlgebra.Hole where
 import Data.FAlgebra.Base
 import Data.Functor
 
--- Functor allowing holes of type a
+-- |Transform a functor to allow holes of type a
 data HoleF a f r = Hole a | Full (f r)
     deriving (Eq, Show, Functor)
 
@@ -17,12 +17,12 @@ instance Natural f f' => Natural f (HoleF a f') where
 instance RestrictedNatural s f f' => RestrictedNatural s f (HoleF a f') where
     rnat s = Full . rnat s
 
--- Hole filling structure
--- This isn't quite the dual of what I have for annotations
--- But it definitely makes more sense here so maybe I was wrong
--- with annotations.
--- Note that when a is an f-coalgebra we can make a -> f r
--- from a -> t through a -> f a -> f r
+-- |Hole filling structure
+--  This isn't quite the dual of what I have for annotations
+--  But it definitely makes more sense here so maybe I was wrong
+--  with annotations.
+--  Note that when a is an f-coalgebra we can make a -> f r
+--  from a -> t through a -> f a -> f r
 newtype HoleM a f r = HoleM { runHoleM :: a -> f r }
 
 instance (Functor f, Conatural f f') => RestrictedConatural (HoleM a f) f (HoleF a f') where

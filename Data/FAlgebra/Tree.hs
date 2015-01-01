@@ -26,37 +26,39 @@ import Control.Applicative
 
 import Lens.Micro
 
+-- |Functor for trees with values on internal nodes.
 data TreeF a b = Empty | Branch a b b deriving (Eq, Show, Ord)
 
 deriving instance Functor (TreeF a)
 deriving instance Foldable (TreeF a)
 deriving instance Traversable (TreeF a)
 
--- "Lenses" for TreeF
--- Only works for Applicatives due to the need of pure
+-- |"Lens" for the value of a node. Only works for Applicatives because Empty has no value.
 _node :: Applicative f => LensLike f (TreeF a b) (TreeF a' b) a a'
 _node _ Empty = pure Empty
 _node f (Branch a b1 b2) = fmap (\a' -> Branch a' b1 b2) (f a)
 
--- _left and _right can't change the types because the left and right subtrees
--- have to stay the same type
+-- |"Lens" For the left branch of a node. Can't change type because left and right need to stay the same type.
 _left :: Applicative f => LensLike' f (TreeF a b) b
 _left _ Empty = pure Empty
 _left f (Branch a b1 b2) = fmap (\b1' -> Branch a b1' b2) (f b1)
 
+-- |"Lens" For the right branch of a node. Can't change type because left and right need to stay the same type.
 _right :: Applicative f => LensLike' f (TreeF a b) b
 _right _ Empty = pure Empty
 _right f (Branch a b1 b2) = fmap (Branch a b1) (f b2)
 
--- Basic traversal orders
+-- |Sequence root and then both branches
 preorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
 preorder Empty = pure Empty
 preorder (Branch a b1 b2) = Branch <$> a <*> b1 <*> b2
 
+-- |Sequence the left branch, then the root, then the right branch
 inorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
 inorder Empty = pure Empty
 inorder (Branch a b1 b2) = (\x y z -> Branch y x z) <$> b1 <*> a <*> b2
 
+-- |Sequence both branches and then the root
 postorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
 postorder Empty = pure Empty
 postorder (Branch a b1 b2) = (\x y z -> Branch z x y) <$> b1 <*> b2 <*> a
@@ -82,76 +84,37 @@ instance a ~ a' => FCoalgebra (TreeF a') (Tree a) where
 instance Functor Tree where
     fmap f = Tree . fmapFix (over _node f) . runTree
 
+-- |Create a tree from its children
 branch :: FAlgebra (TreeF a) t => a -> t -> t -> t
 branch a b1 b2 = alg $ Branch a b1 b2
 
+-- |Create a leaf (a tree with empty children)
 leaf :: forall a t. FAlgebra (TreeF a) t => a -> t
 leaf a = branch a e e
     where
     e = alg (Empty :: TreeF a t)
 
+-- |Create an empty tree. Using this is a bit tricky due to the ambiguous type.
 empty :: forall a t. FAlgebra (TreeF a) t => t
 empty = alg (Empty :: TreeF a t)
 
+-- |Get the left branch of a tree
 left :: forall a t. FCoalgebra (TreeF a) t => t -> t
 left t = case (coalg t :: TreeF a t) of
     Empty -> t
     Branch _ l _ -> l
 
+-- |Get the right branch of a tree
 right :: forall a t. FCoalgebra (TreeF a) t => t -> t
 right t = case (coalg t :: TreeF a t) of
     Empty -> t
     Branch _ _ r -> r
 
-newtype Size = Size Int deriving (Eq, Show, Ord, Num)
-
 instance FAlgebra (TreeF a) Size where
     alg Empty = 0
     alg (Branch _ b1 b2) = 1 + b1 + b2
 
-type SizeTreeF a = AnnF Size (TreeF a)
-
-type SizeTree a = Fix (SizeTreeF a)
-
-getSize :: Annotated Size a => a -> Size
-getSize = getAnnotation
-
-newtype Sum a = Sum a deriving (Eq, Show, Ord, Num)
-
-instance Num a => FAlgebra (TreeF a) (Sum a) where
-    alg Empty = 0
-    alg (Branch a b1 b2) = Sum a + b1 + b2
-
-type SumTreeF a = AnnF (Sum a) (TreeF a)
-type SumTree a = Fix (SumTreeF a)
-
-type SumAndSizeTreeF a = AnnF Size (AnnF (Sum a) (TreeF a))
-type SumAndSizeTree a = Fix (SumAndSizeTreeF a)
-
-getSum :: Annotated (Sum a) t => t -> Sum a
-getSum = getAnnotation
-
--- These instances that are maximally general on f serve as a sort of
--- alternative to functional dependencies, so you can, for example,
--- write coalg t without explicit type signatures.
-instance (f ~ TreeF a) => FAlgebra f (SizeTree a) where
-    alg = algRNat (Proxy :: Proxy (AnnM Size))
-
-instance (f ~ TreeF a) => FCoalgebra f (SizeTree a) where
-    coalg = coalgNat
-
-instance (f ~ TreeF a, Num a) => FAlgebra f (SumTree a) where
-    alg = algRNat (Proxy :: Proxy (AnnM (Sum a)))
-
-instance (f ~ TreeF a, Num a) => FCoalgebra f (SumTree a) where
-    coalg = coalgNat
-
-instance (f ~ TreeF a, Num a) => FAlgebra f (SumAndSizeTree a) where
-    alg = algRNat (Proxy :: Proxy (AnnM (Sum a) :*: AnnM Size))
-
-instance (f ~ TreeF a, Num a) => FCoalgebra f (SumAndSizeTree a) where
-    coalg = coalgNat
-
+-- The below should probably be moved to Examples/RangeReverse/Main.hs
 data RevF f a = RevF !Bool (f a) deriving (Eq, Show, Ord, Functor)
 
 revSnd :: RevF f a -> f a
@@ -187,11 +150,8 @@ instance Preserving RevM (RevF f) where
 instance (f ~ f') => Natural f (RevF f') where
     nat = RevF False
 
--- For size & sum annotations, reversing does not change their value.
+-- For size annotations, reversing does not change their value.
 instance Structured RevM Size where
-    struct = RevM id
-
-instance Structured RevM (Sum a) where
     struct = RevM id
 
 type RevTreeF a = RevF (TreeF a)

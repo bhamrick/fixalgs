@@ -1,6 +1,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -11,6 +12,7 @@ module Data.FAlgebra.Annotation where
 
 import Prelude hiding (sequence)
 
+import Control.Applicative
 import Data.FAlgebra.Base
 import Data.Functor
 import Data.Traversable
@@ -18,6 +20,7 @@ import Data.Traversable
 import Lens.Micro
 
 -- Isomorphic to CofreeF
+-- |Annotate a functor with values of type a
 data AnnF a f r = AnnF !a (f r)
     deriving (Eq, Show)
 
@@ -28,9 +31,11 @@ annFst ~(AnnF a _) = a
 annSnd ~(AnnF _ as) = as
 
 -- Lenses
+-- |Lens for the annotation
 _ann :: Functor f => LensLike f (AnnF a g r) (AnnF b g r) a b
 _ann f ~(AnnF a rs) = flip AnnF rs <$> f a
 
+-- |Lens for the data
 _dat :: Functor f => LensLike f (AnnF a g r) (AnnF a g' s) (g r) (g' s)
 _dat f ~(AnnF a rs) = AnnF a <$> f rs
 
@@ -39,7 +44,7 @@ instance (Functor f, Functor f', FAlgebra f a, Preserving (FAlgebraM f) f') => P
     trans alg0 = FAlgebraM $ \anns ->
         AnnF (alg $ fmap annFst anns) (runFAlgebraM (trans alg0) $ fmap annSnd anns)
 
--- Annotation extracting structure
+-- |Annotation extracting structure
 newtype AnnM a b = AnnM { runAnnM :: b -> a }
 
 type Annotated a b = Structured (AnnM a) b
@@ -72,15 +77,14 @@ instance RestrictedConatural s f f' => RestrictedConatural s f (AnnF a f') where
 instance Conatural f f' => Conatural f (AnnF a f') where
     conat = conat . annSnd
 
--- Annotating an existing fixed point structure
--- First, purely
+-- |Annotate a fixed point structure purely
 annotate :: Functor f => (f a -> a) -> Fix f -> Fix (AnnF a f)
 annotate = fmapFix . annotateStep
     where
     -- annotateStep :: (Functor f, Structured (AnnM a) b) => (f a -> a) -> f b -> AnnF a f b
     annotateStep combine bs = AnnF (combine (fmap getAnnotation bs)) bs
 
--- Annotations inside of a monadic context
+-- |Annotate a fixed point structure inside of a monadic context
 annotateM :: (Traversable f, Functor m, Monad m) => (f a -> m a) -> Fix f -> m (Fix (AnnF a f))
 annotateM buildAnnStep = sequenceFix semisequence
     where
@@ -90,3 +94,19 @@ annotateM buildAnnStep = sequenceFix semisequence
         let as = fmap getAnnotation bs'
         ann <- buildAnnStep as
         return $ AnnF ann bs'
+
+-- |Annotate a fixed point structure inside of an applicative context. Note the difference in input from annotateM
+annotateA :: (Traversable f, Functor g, Applicative g) => (f (g a) -> g a) -> Fix f -> g (Fix (AnnF a f))
+annotateA buildAnnStep = sequenceFix semisequence
+    where
+    semisequence bs =
+        let as = fmap (fmap getAnnotation) bs
+            ann = buildAnnStep as
+        in AnnF <$> ann <*> sequenceA bs
+
+newtype Size = Size Int deriving (Eq, Show, Ord, Num)
+
+type Sized = Structured (AnnM Size)
+
+getSize :: Sized a => a -> Size
+getSize = getAnnotation
