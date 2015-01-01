@@ -17,6 +17,8 @@ import Data.FAlgebra.Tree.Zipper
 import System.CPUTime
 import System.Random
 
+import Lens.Micro
+
 -- Allows us to use our general reverse on lists
 instance Structured RevM [a] where
     struct = RevM P.reverse
@@ -29,9 +31,6 @@ listReverseRange l r as = as1 ++ reverse as2 ++ as3
     as1 = take l as
     as2 = drop l (take r as)
     as3 = drop r as
-
-over :: ((a -> Identity b) -> s -> Identity t) -> (a -> b) -> s -> t
-over l f = runIdentity . l (Identity . f)
 
 treeReverseRange :: Int -> Int -> RevSizeTree a -> RevSizeTree a
 treeReverseRange l r = zip . over _here reverse . isolateInterval l r

@@ -31,5 +31,6 @@ executable range_reverse
   main-is:             Main.hs
   build-depends:       base >=4.7 && <5.0
                      , fixalgs
+                     , microlens >=0.1
                      , mtl >=2.1 && <3.0
                      , random >=1.0
