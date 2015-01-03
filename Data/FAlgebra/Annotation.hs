@@ -3,10 +3,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverlappingInstances #-}
-{-# LANGUAGE RankNTypes #-}
 
 module Data.FAlgebra.Annotation where
 
@@ -27,10 +25,9 @@ data AnnF a f r = AnnF !a (f r)
 instance Functor f => Functor (AnnF a f) where
     fmap f (AnnF a as) = AnnF a (fmap f as)
 
-annFst ~(AnnF a _) = a
-annSnd ~(AnnF _ as) = as
+annFst = view _ann
+annSnd = view _dat
 
--- Lenses
 -- |Lens for the annotation
 _ann :: Functor f => LensLike f (AnnF a g r) (AnnF b g r) a b
 _ann f ~(AnnF a rs) = flip AnnF rs <$> f a
