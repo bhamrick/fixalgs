@@ -33,21 +33,25 @@ deriving instance Traversable (TreeF a)
 _node :: Applicative f => LensLike f (TreeF a b) (TreeF a' b) a a'
 _node _ Empty = pure Empty
 _node f (Branch a b1 b2) = fmap (\a' -> Branch a' b1 b2) (f a)
+{-# INLINE _node #-}
 
 -- |Traversal for the left branch of a node. Can't change type because left and right need to stay the same type.
 _left :: Applicative f => LensLike' f (TreeF a b) b
 _left _ Empty = pure Empty
 _left f (Branch a b1 b2) = fmap (\b1' -> Branch a b1' b2) (f b1)
+{-# INLINE _left #-}
 
 -- |Traversal for the right branch of a node. Can't change type because left and right need to stay the same type.
 _right :: Applicative f => LensLike' f (TreeF a b) b
 _right _ Empty = pure Empty
 _right f (Branch a b1 b2) = fmap (Branch a b1) (f b2)
+{-# INLINE _right #-}
 
 -- |Traversal for both children of a node.
 _children :: Applicative f => LensLike f (TreeF a b) (TreeF a b') b b'
 _children _ Empty = pure Empty
 _children f (Branch a b1 b2) = Branch a <$> f b1 <*> f b2
+{-# INLINE _children #-}
 
 -- |Sequence root and then both branches
 preorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)

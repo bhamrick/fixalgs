@@ -59,6 +59,7 @@ instance (a ~ a', FCoalgebra (TreeF a) t) => FCoalgebra (TreeF a') (TreeZip a t)
 -- |Lens for the current subtree
 _here :: Functor f => (t -> f t) -> TreeZip a t -> f (TreeZip a t)
 _here f (TreeZip t p) = fmap (flip TreeZip p) (f t)
+{-# INLINE _here #-}
 
 -- |Get a zipper for the root of a tree
 root :: t -> TreeZip a t

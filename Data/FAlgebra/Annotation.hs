@@ -31,10 +31,12 @@ annSnd = view _dat
 -- |Lens for the annotation
 _ann :: Functor f => LensLike f (AnnF a g r) (AnnF b g r) a b
 _ann f ~(AnnF a rs) = flip AnnF rs <$> f a
+{-# INLINE _ann #-}
 
 -- |Lens for the data
 _dat :: Functor f => LensLike f (AnnF a g r) (AnnF a g' s) (g r) (g' s)
 _dat f ~(AnnF a rs) = AnnF a <$> f rs
+{-# INLINE _dat #-}
 
 -- This works, but generally not what you want to do because it recomputes annotations for the previous level
 instance (Functor f, Functor f', FAlgebra f a, Preserving (FAlgebraM f) f') => Preserving (FAlgebraM f) (AnnF a f') where
