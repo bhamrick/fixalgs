@@ -4,13 +4,9 @@
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Data.FAlgebra.Tree where
 
@@ -74,13 +70,6 @@ instance (Functor f, FAlgebra f (Fix (TreeF a))) => FAlgebra f (Tree a) where
 instance (Functor f, FCoalgebra f (Fix (TreeF a))) => FCoalgebra f (Tree a) where
     coalg = fmap Tree . coalg . runTree
 
--- To aid inference (especially in the use of empty)
-instance a ~ a' => FAlgebra (TreeF a') (Tree a) where
-    alg = Tree . alg . fmap runTree
-
-instance a ~ a' => FCoalgebra (TreeF a') (Tree a) where
-    coalg = fmap Tree . coalg . runTree
-
 instance Functor Tree where
     fmap f = Tree . fmapFix (over _node f) . runTree
 
@@ -113,83 +102,3 @@ right t = case (coalg t :: TreeF a t) of
 instance FAlgebra (TreeF a) Size where
     alg Empty = 0
     alg (Branch _ b1 b2) = 1 + b1 + b2
-
--- The below should probably be moved to Examples/RangeReverse/Main.hs
-data RevF f a = RevF !Bool (f a) deriving (Eq, Show, Ord, Functor)
-
-revSnd :: RevF f a -> f a
-revSnd ~(RevF _ as) = as
-
-newtype RevM a = RevM { runRevM :: a -> a }
-
-reverse :: Structured RevM a => a -> a
-reverse = runRevM struct
-
-instance IsoRespecting RevM where
-    liftIso (Iso to from) = Iso revTo revFrom
-        where
-        revTo (RevM r) = RevM (to . r . from)
-        revFrom (RevM r) = RevM (from . r . to)
-
-instance Preserving RevM (TreeF a) where
-    trans (RevM r) = RevM $ \t -> case t of
-        Empty -> Empty
-        Branch a b1 b2 -> Branch a (r b2) (r b1)
-
-instance (Structured RevM a, Preserving RevM f) => Preserving RevM (AnnF a f) where
-    trans rev = RevM $ \(AnnF a xs) ->
-        AnnF (reverse a) (runRevM (trans rev) xs)
-
-instance Structured RevM (RevF f a) where
-    struct = RevM $ \(RevF r xs) -> RevF (not r) xs
-
--- RevF "captures" the reverse operation
-instance Preserving RevM (RevF f) where
-    trans (RevM _) = RevM reverse
-
-instance (f ~ f') => Natural f (RevF f') where
-    nat = RevF False
-
--- For size annotations, reversing does not change their value.
-instance Structured RevM Size where
-    struct = RevM id
-
-type RevTreeF a = RevF (TreeF a)
-type RevTree a = Fix (RevTreeF a)
-
-type RevSizeTreeF a = AnnF Size (RevF (TreeF a))
-type RevSizeTree a = Fix (RevSizeTreeF a)
-
-instance (f ~ TreeF a) => FAlgebra f (RevTree a) where
-    alg = algNat
-
-instance (f ~ TreeF a) => FCoalgebra f (RevTree a) where
-    coalg = coalgRNat (Proxy :: Proxy RevM)
-
-instance RestrictedNatural s f f' => RestrictedNatural s f (RevF f') where
-    rnat s = RevF False . rnat s
-
-instance (Preserving RevM f', RestrictedConatural RevM f f') => RestrictedConatural RevM f (RevF f') where
-    rconat rev (RevF False as) = rconat rev as
-    rconat rev (RevF True as) = rconat rev $ runRevM (trans rev) as
-
-instance (f ~ TreeF a) => FAlgebra f (RevSizeTree a) where
-    alg = algRNat (Proxy :: Proxy (AnnM Size))
-
-instance (f ~ TreeF a) => FCoalgebra f (RevSizeTree a) where
-    coalg = coalgRNat (Proxy :: Proxy RevM)
-
-type SizeRevTreeF a = RevF (AnnF Size (TreeF a))
-type SizeRevTree a = Fix (SizeRevTreeF a)
-
-instance (Structured RevM a, Preserving (AnnM a) f) => Preserving (AnnM a) (RevF f) where
-    trans annm = AnnM getAnn'
-        where
-        getAnn' (RevF False bs) = runAnnM (trans annm) bs
-        getAnn' (RevF True bs) = reverse (runAnnM (trans annm) bs)
-
-instance (f ~ TreeF a) => FAlgebra f (SizeRevTree a) where
-    alg = algRNat (Proxy :: Proxy (AnnM Size))
-
-instance (f ~ TreeF a) => FCoalgebra f (SizeRevTree a) where
-    coalg = coalgRNat (Proxy :: Proxy RevM)
