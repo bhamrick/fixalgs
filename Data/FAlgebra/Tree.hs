@@ -29,20 +29,25 @@ deriving instance Functor (TreeF a)
 deriving instance Foldable (TreeF a)
 deriving instance Traversable (TreeF a)
 
--- |"Lens" for the value of a node. Only works for Applicatives because Empty has no value.
+-- |Traversal for the value of a node.
 _node :: Applicative f => LensLike f (TreeF a b) (TreeF a' b) a a'
 _node _ Empty = pure Empty
 _node f (Branch a b1 b2) = fmap (\a' -> Branch a' b1 b2) (f a)
 
--- |"Lens" For the left branch of a node. Can't change type because left and right need to stay the same type.
+-- |Traversal for the left branch of a node. Can't change type because left and right need to stay the same type.
 _left :: Applicative f => LensLike' f (TreeF a b) b
 _left _ Empty = pure Empty
 _left f (Branch a b1 b2) = fmap (\b1' -> Branch a b1' b2) (f b1)
 
--- |"Lens" For the right branch of a node. Can't change type because left and right need to stay the same type.
+-- |Traversal for the right branch of a node. Can't change type because left and right need to stay the same type.
 _right :: Applicative f => LensLike' f (TreeF a b) b
 _right _ Empty = pure Empty
 _right f (Branch a b1 b2) = fmap (Branch a b1) (f b2)
+
+-- |Traversal for both children of a node.
+_children :: Applicative f => LensLike f (TreeF a b) (TreeF a b') b b'
+_children _ Empty = pure Empty
+_children f (Branch a b1 b2) = Branch a <$> f b1 <*> f b2
 
 -- |Sequence root and then both branches
 preorder :: Applicative g => TreeF (g a) (g b) -> g (TreeF a b)
@@ -73,7 +78,7 @@ instance (Functor f, FCoalgebra f (Fix (TreeF a))) => FCoalgebra f (Tree a) wher
 instance Functor Tree where
     fmap f = Tree . fmapFix (over _node f) . runTree
 
--- |Create a tree from its children
+-- |Create a tree from its node and its children
 branch :: FAlgebra (TreeF a) t => a -> t -> t -> t
 branch a b1 b2 = alg $ Branch a b1 b2
 
