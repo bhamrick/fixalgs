@@ -227,6 +227,14 @@ algRNat _ = Fix . rnat (sfix :: s (Fix g))
 coalgRNat :: forall proxy s f g. (Functor f, IsoRespecting s, Preserving s g, RestrictedConatural s f g) => proxy s -> Fix g -> f (Fix g)
 coalgRNat _ = rconat (sfix :: s (Fix g)) . unFix
 
+-- |Version of algNat/algRNat that takes the natural transformation as an input.
+algNat' :: (f (Fix g) -> g (Fix g)) -> f (Fix g) -> Fix g
+algNat' n = Fix . n
+
+-- |Version of coalgNat/coalgRNat that takes the natural transformation as an input.
+coalgNat' :: (g (Fix g) -> f (Fix g)) -> Fix g -> f (Fix g)
+coalgNat' cn = cn . unFix
+
 -- Maximally general restricted (co)natural instances to be tried only if
 -- nothing else matches.
 instance Natural f f' => RestrictedNatural s f f' where
@@ -248,7 +256,6 @@ fmapFix n = Fix . n . fmap (fmapFix n) . unFix
 
 -- For example, when f' = TreeF (g a), f = TreeF a, this gives us Tree (g a) -> g (Tree a)
 -- Note that when g = Identity this reduces to fmapFix.
--- TODO: Consider generalizing this if it's reasonable.
 
 -- Similarly here, the first argument is generally going to be of the form
 -- forall x. f (g x) -> g (f' x)
