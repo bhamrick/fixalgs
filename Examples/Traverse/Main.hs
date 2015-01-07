@@ -2,8 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
-import Data.FAlgebra.Annotation
-import Data.FAlgebra.Base
+import Data.FAlgebra
 import Data.FAlgebra.Tree
 
 import Control.Applicative (Applicative, (<$>), (<*>), pure)
@@ -14,6 +13,8 @@ import Data.Traversable
 
 example :: Tree ()
 example = branch () (branch () (leaf ()) (branch () empty (leaf ()))) (branch () empty (leaf ()))
+    where
+    empty = alg (Empty :: TreeF () (Tree ()))
 
 type LabeledTreeF a = AnnF Int (TreeF a)
 -- The newtype is because you can't partially apply type synonyms

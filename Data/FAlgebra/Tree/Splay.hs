@@ -1,6 +1,17 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Data.FAlgebra.Tree.Splay where
+module Data.FAlgebra.Tree.Splay
+    ( module Data.FAlgebra.Annotation
+    , module Data.FAlgebra.Base
+    , module Data.FAlgebra.Tree
+    , module Data.FAlgebra.Tree.Indexed
+    , module Data.FAlgebra.Tree.Zipper
+
+    , splayStep
+    , splay
+    , isolateInterval
+    , insertAt
+    ) where
 
 import Prelude hiding (zip)
 

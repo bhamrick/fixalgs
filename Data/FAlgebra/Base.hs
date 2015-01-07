@@ -11,7 +11,47 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.FAlgebra.Base where
+module Data.FAlgebra.Base
+    ( FAlgebra(..)
+    , FAlgebraM(..)
+    , FCoalgebra(..)
+    , FCoalgebraM(..)
+    , Fix(..)
+    , cata
+    , ana
+    , hylo
+
+    , (:*:)(..)
+    , Preserving(..)
+    , Structured(..)
+    , U(..)
+    , pfst
+    , psnd
+
+    , Iso(..)
+    , IsoRespecting(..)
+    , ($$)
+    , runIso
+    , invert
+
+    , sfix
+    , algPreserving
+    , coalgPreserving
+
+    , Natural(..)
+    , Conatural(..)
+    , RestrictedNatural(..)
+    , RestrictedConatural(..)
+    , algNat
+    , algRNat
+    , algNat'
+    , coalgNat
+    , coalgRNat
+    , coalgNat'
+
+    , fmapFix
+    , sequenceFix
+    ) where
 
 import Control.Applicative
 

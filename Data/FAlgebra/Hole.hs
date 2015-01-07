@@ -2,7 +2,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeOperators #-}
-module Data.FAlgebra.Hole where
+module Data.FAlgebra.Hole 
+    ( module Data.FAlgebra.Base
+    , HoleF(..)
+    , HoleM(..)
+    ) where
 
 import Data.FAlgebra.Base
 import Data.Functor

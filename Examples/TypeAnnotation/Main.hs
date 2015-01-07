@@ -10,8 +10,7 @@ import Prelude hiding (sequence, foldl)
 import Control.Applicative
 import Control.Monad.State hiding (sequence)
 
-import Data.FAlgebra.Annotation
-import Data.FAlgebra.Base
+import Data.FAlgebra
 
 import Data.Foldable
 import Data.Traversable

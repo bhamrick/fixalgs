@@ -6,7 +6,22 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverlappingInstances #-}
 
-module Data.FAlgebra.Annotation where
+module Data.FAlgebra.Annotation
+    ( module Data.FAlgebra.Base
+    , AnnF(..)
+    , AnnM(..)
+    , Annotated(..)
+    , _ann
+    , _dat
+    , getAnnotation
+    , annotate
+    , annotateM
+    , annotateA
+
+    , Size(..)
+    , Sized(..)
+    , getSize
+    ) where
 
 import Prelude hiding (sequence)
 

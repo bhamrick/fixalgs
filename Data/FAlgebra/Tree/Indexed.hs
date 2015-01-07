@@ -1,6 +1,14 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Data.FAlgebra.Tree.Indexed where
+module Data.FAlgebra.Tree.Indexed
+    ( module Data.FAlgebra.Base
+    , module Data.FAlgebra.Annotation
+    , module Data.FAlgebra.Tree
+    , module Data.FAlgebra.Tree.Zipper
+
+    , idx
+    , idxSlot
+    ) where
 
 import Prelude hiding (zip)
 

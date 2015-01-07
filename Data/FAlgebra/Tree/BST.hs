@@ -1,6 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Data.FAlgebra.Tree.BST where
+module Data.FAlgebra.Tree.BST
+    ( module Data.FAlgebra.Base
+    , module Data.FAlgebra.Tree
+    , module Data.FAlgebra.Tree.Zipper
+
+    , find
+    ) where
 
 import Data.FAlgebra.Base
 import Data.FAlgebra.Tree

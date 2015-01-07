@@ -8,7 +8,23 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Data.FAlgebra.Tree where
+module Data.FAlgebra.Tree 
+    ( module Data.FAlgebra.Base
+    , TreeF(..)
+    , Tree(..)
+    , _node
+    , _left
+    , _right
+    , _children
+    , preorder
+    , inorder
+    , postorder
+    , branch
+    , leaf
+    , empty
+    , left
+    , right
+    ) where
 
 import Prelude hiding (reverse)
 import Data.FAlgebra.Base
@@ -18,7 +34,7 @@ import Data.Foldable
 import Data.Proxy
 import Data.Traversable
 
-import Control.Applicative
+import Control.Applicative hiding (empty)
 
 import Lens.Micro
 

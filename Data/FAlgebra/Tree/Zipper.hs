@@ -4,11 +4,29 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-module Data.FAlgebra.Tree.Zipper where
+module Data.FAlgebra.Tree.Zipper
+    ( module Data.FAlgebra.Base
+    , module Data.FAlgebra.Tree
+
+    , TreeZipStepF(..)
+    , TreeZipSteps(..)
+    , TreeDirection(..)
+    , TreeZip(..)
+
+    , _here
+    , directions
+    , root
+    , sibling
+    , up
+    , value
+    , zip
+
+    , rotate
+    , insertHere
+    ) where
 
 import Prelude hiding (zip)
 import Data.FAlgebra.Base
-import Data.FAlgebra.Annotation
 import Data.FAlgebra.Tree hiding (left, right)
 
 -- |Unfixed version of the list of steps up the tree
