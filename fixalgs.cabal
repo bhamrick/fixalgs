@@ -35,9 +35,10 @@ flag build-examples
 executable range_reverse
   hs-source-dirs:      Examples/RangeReverse
   main-is:             Main.hs
-  if !flag(build-examples)
-    buildable: False
+  --if !flag(build-examples)
+  --  buildable: False
   build-depends:       base >=4.7 && <5.0
+                     , bytestring
                      , fixalgs
                      , microlens >=0.1
                      , mtl >=2.1 && <3.0

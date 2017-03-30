@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 import Prelude hiding (reverse, zip)
@@ -10,6 +11,8 @@ import qualified Prelude as P
 import Control.Monad
 import Control.Monad.Identity (Identity(..), runIdentity)
 
+import Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as B
 import Data.FAlgebra.Tree.Splay
 import Data.Proxy
 
@@ -163,11 +166,61 @@ runComparison size nrevs = do
     print . asSeconds $ treeEnd - treeStart
     print $ listResult == treeResult
 
+data Command
+    = Set Int Bool
+    | Get Int
+    | Reverse Int Int
+    deriving (Eq, Show, Ord)
+
+readCommand :: ByteString -> Maybe Command
+readCommand dat = case B.split ' ' dat of
+    ["S", idx, val] -> do
+        (idx', _) <- B.readInt idx
+        let val' = val == "1"
+        pure $ Set idx' val'
+    ["G", idx] -> do
+        (idx', _) <- B.readInt idx
+        pure $ Get idx'
+    ["R", idx1, idx2] -> do
+        (idx1', _) <- B.readInt idx1
+        (idx2', _) <- B.readInt idx2
+        pure $ Reverse idx1' idx2'
+    _ -> Nothing
+
+runCommands :: Int -> [Command] -> [ByteString]
+runCommands n comms = go (treeFromList (replicate n False)) comms []
+    where
+    go :: RevSizeTree Bool -> [Command] -> [ByteString] -> [ByteString]
+    go tree comms acc = case comms of
+        [] -> reverse acc
+        c:cs -> case c of
+            Set idx val ->
+                let tree' = setIndex idx val tree
+                in
+                tree' `seq` go tree' cs acc
+            Get idx ->
+                let (Just v, tree') = getIndex idx tree
+                in
+                tree' `seq` go tree' cs ((if v then "1" else "0"):acc)
+            Reverse idx1 idx2 ->
+                let tree' = treeReverseRange idx1 idx2 tree
+                in
+                tree' `seq` go tree' cs acc
+
 main :: IO ()
 main = do
-    runComparison 1000 1000
-    runComparison 2000 2000
-    runComparison 4000 4000
-    runComparison 8000 8000
-    runComparison 16000 16000
-    -- runComparison 32000 32000
+    lines <- B.lines <$> B.readFile "range_reverse.in"
+    case lines of
+        line1:commandLines -> do
+            case traverse readCommand commandLines of
+                Just commands -> do
+                    case B.readInt line1 of
+                        Just (n, _) -> do
+                            let outLines = runCommands n commands
+                            B.writeFile "range_reverse.out" . B.unlines $ outLines
+                        Nothing -> do
+                            putStrLn "Error reading input file"
+                Nothing -> do
+                    putStrLn "Error reading input file"
+        _ -> do
+            putStrLn "Malformed input"

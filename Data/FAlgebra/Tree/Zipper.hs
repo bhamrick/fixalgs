@@ -19,6 +19,7 @@ module Data.FAlgebra.Tree.Zipper
     , sibling
     , up
     , value
+    , setValue
     , zip
 
     , rotate
@@ -56,6 +57,11 @@ value :: FCoalgebra (TreeF a) t => TreeZip a t -> Maybe a
 value (TreeZip t _) = case coalg t of
     Empty -> Nothing
     Branch a _ _ -> Just a
+
+setValue :: forall a t. (FCoalgebra (TreeF a) t, FAlgebra (TreeF a) t) => a -> TreeZip a t -> TreeZip a t
+setValue v (TreeZip t p) = case coalg t :: TreeF a t of
+    Empty -> TreeZip t p
+    Branch a l r -> TreeZip (alg (Branch v l r)) p
 
 -- |Move up in the tree, staying still if at the root.
 -- left and right come from the coalgebra instance for TreeZip a t.

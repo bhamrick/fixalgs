@@ -79,7 +79,7 @@ instance Monoid TypeResult where
         }
     mappend a b = TypeResult
         { constraints = constraints a `mappend` constraints b
-        , assumptions = assumptions a `mappend` assumptions b
+        , assumptions = Map.unionWith mappend (assumptions a) (assumptions b)
         }
 
 newtype VarIdSource = VarIdSource Int

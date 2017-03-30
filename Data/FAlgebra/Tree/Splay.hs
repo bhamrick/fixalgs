@@ -7,6 +7,8 @@ module Data.FAlgebra.Tree.Splay
     , module Data.FAlgebra.Tree.Indexed
     , module Data.FAlgebra.Tree.Zipper
 
+    , getIndex
+    , setIndex
     , splayStep
     , splay
     , isolateInterval
@@ -45,6 +47,20 @@ splay z = if isRoot z
 
 -- TODO: Decide how to split indexed splays from BST splays
 -- Data.FAlgebra.Tree.Splay.(Indexed|BST)?
+
+getIndex :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Annotated Size t) => Int -> t -> (Maybe a, t)
+getIndex i t =
+    let z = idx i t
+        v = value z
+    in
+    (v, zip . splay $ z)
+
+setIndex :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Annotated Size t, Show a, Show t) => Int -> a -> t -> t
+setIndex i v t =
+    let z = idx i t
+        z' = setValue v z
+    in
+    zip . splay $ z'
 
 -- |Isolate the interval [l, r) in a rooted subtree and return a zipper for that subtree
 isolateInterval :: forall a t. (FAlgebra (TreeF a) t, FCoalgebra (TreeF a) t, Annotated Size t) => Int -> Int -> t -> TreeZip a t
